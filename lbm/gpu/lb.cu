@@ -9,9 +9,7 @@ lb::lb() {}
 void lb::read( const char *parameters, const char *obstacles )
 {
 	std::ifstream par, obs;
-	int max, c;
-	int i, j;
-
+	int max, c=0;
 	par.open( parameters );
 	obs.open( obstacles );
 	if( !par.is_open() || !obs.is_open() )
@@ -31,7 +29,7 @@ void lb::read( const char *parameters, const char *obstacles )
 	while( c < max ){
 		obs >> i;
 		obs >> j;
-		obs[pos(i-1,j-1)] = true;
+		obst[pos(i-1,j-1)] = true;
 		c++;
 	}
 	par.close();
