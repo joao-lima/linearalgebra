@@ -14,23 +14,23 @@ void lb::read( const char *parameters, const char *obstacles )
 
 	par.open( parameters );
 	obs.open( obstacles );
-	if( !par.open() || !obs.open() )
+	if( !par.is_open() || !obs.is_open() )
 		return;
-	max_iter << par;
-	density << par;
-	accel << par;
-	omega << par;
-	r_rey << par;
+	par >> max_iter;
+	par >> density;
+	par >> accel;
+	par >> omega;
+	par >> r_rey;
 
-	nx << obs;
-	ny << obs;
-	ndim << obs;
-	max << obs;
+	obs >> nx;
+	obs >> ny;
+	obs >> ndim;
+	obs >> max;
 
 	resize( nx * ny );
 	while( c < max ){
-		i << obs;
-		j << obs;
+		obs >> i;
+		obs >> j;
 		obs[pos(i-1,j-1)] = true;
 		c++;
 	}
