@@ -73,7 +73,7 @@ void lb::init( )
 
 float lb::velocity( int time ) 
 {
-	int x, y, i, n_free;
+	int x, y,  n_free;
 	double u_x, d_loc;
 
 	x = nx/2;

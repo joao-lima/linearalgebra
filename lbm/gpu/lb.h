@@ -15,6 +15,7 @@
 */
 
 class lb {
+public:
 	lb();
 	void read( const char *parameters, const char *obstacles );
 	void init( void );
