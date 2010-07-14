@@ -27,6 +27,8 @@ void lb::read( const char *parameters, const char *obstacles )
 	obs >> ndim;
 	obs >> max;
 
+	std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
+		<< std::endl;
 	resize( nx * ny );
 	while( c < max ){
 		obs >> i;
@@ -73,7 +75,7 @@ void lb::init( )
 
 float lb::velocity( int time ) 
 {
-	int x, y,  n_free;
+	int x, y, n_free;
 	double u_x, d_loc;
 
 	x = nx/2;
