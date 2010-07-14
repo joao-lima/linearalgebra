@@ -10,6 +10,8 @@ void lb::read( const char *parameters, const char *obstacles )
 {
 	std::ifstream par, obs;
 	int max, c=0;
+	int i, j;
+
 	par.open( parameters );
 	obs.open( obstacles );
 	if( !par.is_open() || !obs.is_open() )
@@ -51,8 +53,8 @@ void lb::init( )
 	double t_2 = density / 36.0;
 
 	//loop over computational domain
-	for (x = 0; x < l->lx; x++) {
-		for (y = 0; y < l->ly; y++) {
+	for (x = 0; x < nx; x++) {
+		for (y = 0; y < ny; y++) {
 			//zero velocity density
 			f0[pos(x,y)] = t_0;
 			//equilibrium densities for axis speeds
