@@ -15,9 +15,12 @@
 */
 
 class lb {
+	lb();
+	void read( const char *parameters, const char *obstacles );
+	void init( void );
 private:
 	// Lattice
-	int max_ter; // maximum number of iterations
+	int max_iter; // maximum number of iterations
 	float density;
 	float accel;
 	float omega;
@@ -27,6 +30,14 @@ private:
 	int nx, ny, ndim;
 	
 	thust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
+	thust::host_vector<bool> obst;
+
+	inline unsigned int pos( const int x, const int y ) const
+       	{
+		return ( x*nx + y );
+	}
+
+	void resize( const int n );
 };
 
 #endif /* _LB_H_ */
