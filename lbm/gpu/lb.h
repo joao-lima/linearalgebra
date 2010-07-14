@@ -35,7 +35,7 @@ private:
 
 	inline unsigned int pos( const int x, const int y ) const
        	{
-		return ( x*nx + y );
+		return ( x*ny + y );
 	}
 
 	void resize( const int n );
