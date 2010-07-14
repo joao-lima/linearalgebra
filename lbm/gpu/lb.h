@@ -29,8 +29,8 @@ private:
 	//lattice structres
 	int nx, ny, ndim;
 	
-	thust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
-	thust::host_vector<bool> obst;
+	thrust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
+	thrust::host_vector<bool> obst;
 
 	inline unsigned int pos( const int x, const int y ) const
        	{
