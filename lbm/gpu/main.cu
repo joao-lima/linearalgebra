@@ -1,6 +1,5 @@
 
 #include <iostream>
-
 #include "lb.h"
 
 int main( int argc, char **argv )
