@@ -38,6 +38,7 @@ private:
 	}
 
 	void resize( const int n );
+	float velocity( int time );
 };
 
 #endif /* _LB_H_ */
