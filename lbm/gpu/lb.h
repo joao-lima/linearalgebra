@@ -42,6 +42,7 @@ private:
 	int nx, ny, ndim;
 	
 	thrust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
+	thrust::host_vector<float> tf0, tf1, tf2, tf3, tf4, tf5, tf6, tf7, tf8;
 	thrust::host_vector<bool> obst;
 
 	/* returns the actual position in the array */
