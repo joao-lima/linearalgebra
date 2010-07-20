@@ -27,19 +27,29 @@ private:
 	float omega;
 	float r_rey;
 
-	//lattice structres
+	//lattice structures
 	int nx, ny, ndim;
 	
 	thrust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
 	thrust::host_vector<bool> obst;
 
+	/* returns the actual position in the array */
 	inline unsigned int pos( const int x, const int y ) const
        	{
 		return ( x*ny + y );
 	}
 
+	inline int max_iteractions( void ) const
+	{
+		return max_iter;
+	}
+
 	void resize( const int n );
 	float velocity( int time );
+	void redistribute( void );
+	void propagate( void );
+	void bounceback( void );
+	void relaxation( void );
 };
 
 #endif /* _LB_H_ */

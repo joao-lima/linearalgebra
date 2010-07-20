@@ -73,6 +73,9 @@ void lb::init( )
 	}
 }
 
+/* essa função pode ter uma implementação CUDA/thrust 
+   eu vi uma função chamada transform_reduce, quem sabe ...
+*/
 float lb::velocity( int time ) 
 {
 	int x, y, n_free;
@@ -109,4 +112,24 @@ float lb::velocity( int time )
 	}
 	*/
 	return u_x / n_free;
+}
+
+void redistribute( void )
+{
+	/* here a kernel call */
+}
+
+void propagate( void )
+{
+	/* here a kernel call */
+}
+
+void bounceback( void )
+{
+	/* here a kernel call */
+}
+
+void relaxation( void )
+{
+	/* here a kernel call */
 }
