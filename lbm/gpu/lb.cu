@@ -114,22 +114,22 @@ float lb::velocity( int time )
 	return u_x / n_free;
 }
 
-void redistribute( void )
+void lb::redistribute( void )
 {
 	/* here a kernel call */
 }
 
-void propagate( void )
+void lb::propagate( void )
 {
 	/* here a kernel call */
 }
 
-void bounceback( void )
+void lb::bounceback( void )
 {
 	/* here a kernel call */
 }
 
-void relaxation( void )
+void lb::relaxation( void )
 {
 	/* here a kernel call */
 }
