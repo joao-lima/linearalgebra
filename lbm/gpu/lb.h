@@ -17,8 +17,19 @@
 class lb {
 public:
 	lb();
+
+	inline int max_iteractions( void ) const
+	{
+		return max_iter;
+	}
 	void read( const char *parameters, const char *obstacles );
 	void init( void );
+	float velocity( int time );
+	void redistribute( void );
+	void propagate( void );
+	void bounceback( void );
+	void relaxation( void );
+
 private:
 	// Lattice
 	int max_iter; // maximum number of iterations
@@ -39,17 +50,7 @@ private:
 		return ( x*ny + y );
 	}
 
-	inline int max_iteractions( void ) const
-	{
-		return max_iter;
-	}
-
 	void resize( const int n );
-	float velocity( int time );
-	void redistribute( void );
-	void propagate( void );
-	void bounceback( void );
-	void relaxation( void );
 };
 
 #endif /* _LB_H_ */
