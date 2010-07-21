@@ -252,7 +252,7 @@ void lb::bounceback( void )
 }
 
 __device__ inline unsigned int pos( const int x, const int y,
-		const int n ) const
+		const int n ) 
 {
 	return ( x*n + y );
 }
