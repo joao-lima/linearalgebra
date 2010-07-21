@@ -13,7 +13,7 @@ lb::lb() {}
 __device__ inline unsigned int pos( const int x, const int y,
 		const int n ) 
 {
-	return ( y * nx + x );
+	return ( y * n + x );
 }
 
 void lb::read( const char *parameters, const char *obstacles )
