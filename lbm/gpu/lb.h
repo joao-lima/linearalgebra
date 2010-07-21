@@ -59,11 +59,6 @@ private:
        	{
 		return ( x*ny + y );
 	}
-	__device__ inline unsigned int pos( const int x, const int y,
-			const int n ) const
-       	{
-		return ( x*ny + y );
-	}
 
 	void resize( const int n );
 };

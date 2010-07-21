@@ -251,7 +251,13 @@ void lb::bounceback( void )
 		nx, ny );
 }
 
-__global__ void relaxation( 
+__device__ inline unsigned int pos( const int x, const int y,
+		const int n ) const
+{
+	return ( x*ny + y );
+}
+
+__global__ void relaxation_kernel( 
 	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
 	float *f6, float *f7, float *f8,
 	float *tf0, float *tf1, float *tf2, float *tf3, float *tf4, 
