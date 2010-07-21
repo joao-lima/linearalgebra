@@ -174,7 +174,7 @@ void lb::redistribute( void )
 	// tem de chamar esse kernel com uma dimensao apenas
 	dim3 threads( BLOCK_SIZE, 1 );
 	dim3 grid( (ny+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
-	redistribute<<grid, threads>>(
+	redistribute<<< grid, threads >>>(
 		thrust::raw_pointer_cast(&d_f1[0]),
 		thrust::raw_pointer_cast(&d_f2[0]),
 		thrust::raw_pointer_cast(&d_f3[0]),
