@@ -151,25 +151,25 @@ __global__ void redistribute_kernel( float * f1, float * f3, float * f5,
     //for (y = 0; y < l->ly; y++) {
     //check to avoid negative densities
     //check false | true
-    if ( (obst[row * nx] == false) && ((f3[row * nx] - t_1) > 0) && 
-                 ((f6[row * nx] - t_2) > 0) && (f7[row * nx] - t_2 > 0)) {
+    if ( (obst[row * ny] == false) && ((f3[row * ny] - t_1) > 0) && 
+                 ((f6[row * ny] - t_2) > 0) && (f7[row * ny] - t_2 > 0)) {
       //increase east
-      f1[row * nx] += t_1;
+      f1[row * ny] += t_1;
       //l->node[0][y][1] += t_1;
       //decrease west
-      f3[row * nx] -= t_1;
+      f3[row * ny] -= t_1;
       //l->node[0][y][3] -= t_1;
       //increase north-east
-      f5[row * nx] += t_2;
+      f5[row * ny] += t_2;
       //l->node[0][y][5] += t_2;
       //decrease north-west
-      f6[row * nx] -= t_2;
+      f6[row * ny] -= t_2;
       //l->node[0][y][6] -= t_2;
       //decrease south-west
-      f7[row * nx] -= t_2;
+      f7[row * ny] -= t_2;
       //l->node[0][y][7] -= t_2;
       //increase south-east
-      f8[row * nx] += t_2;
+      f8[row * ny] += t_2;
       //l->node[0][y][8] += t_2;
     }
   //}
