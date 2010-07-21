@@ -53,7 +53,8 @@ int main(int argc, char **argv) {
 
 	execution_time = crono();
 	//Begin of the main loop
-	for (time = 0; time < properties->t_max; time++) {
+	//for (time = 0; time < properties->t_max; time++) {
+	for (time = 0; time < 2; time++) {
 
 		 if (!(time%(properties->t_max/1))) {
 			check_density(lattice, time);
@@ -65,7 +66,7 @@ int main(int argc, char **argv) {
 
 		bounceback(lattice);
 
-		relaxation(lattice, properties->density, properties->omega);
+		//relaxation(lattice, properties->density, properties->omega);
 
 		vel = calc_velocity(lattice, time);
 		printf("%d %f\n", time, vel);

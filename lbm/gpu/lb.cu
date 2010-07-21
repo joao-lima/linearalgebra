@@ -38,7 +38,7 @@ void lb::read( const char *parameters, const char *obstacles )
 	obs >> max;
 
 	std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
-		<< std::endl;
+		<< " omega=" << omega << std::endl;
 	resize( nx * ny );
 	while( c < max ){
 		obs >> i;
@@ -416,6 +416,7 @@ __global__ void relaxation_kernel(
 		f5[pos(x,y,nx)] = tf5[pos(x,y,nx)] + omega * (n_equ[5] - tf5[pos(x,y,nx)]);
 		f6[pos(x,y,nx)] = tf6[pos(x,y,nx)] + omega * (n_equ[6] - tf6[pos(x,y,nx)]);
 		f7[pos(x,y,nx)] = tf7[pos(x,y,nx)] + omega * (n_equ[7] - tf7[pos(x,y,nx)]);
+		f8[pos(x,y,nx)] = tf8[pos(x,y,nx)] + omega * (n_equ[8] - tf8[pos(x,y,nx)]);
 		//for (i = 0; i < l->n; i++) {
 		//	l->node[x][y][i] = l->temp[x][y][i] + omega * (n_equ[i] - l->temp[x][y][i]);
 		//}	
