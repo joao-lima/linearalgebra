@@ -408,22 +408,14 @@ __global__ void relaxation_kernel(
 
 		
 		//relaxation step
-		f0[pos(x,y,nx)] = tf0[pos(x,y,nx)] + omega *
-		       	(n_equ[0] - tf0[pos(x,y,nx)]);
-		f1[pos(x,y,nx)] = tf1[pos(x,y,nx)] + omega *
-		       	(n_equ[1] - tf1[pos(x,y,nx)]);
-		f2[pos(x,y,nx)] = tf2[pos(x,y,nx)] + omega *
-		       	(n_equ[2] - tf2[pos(x,y,nx)]);
-		f3[pos(x,y,nx)] = tf3[pos(x,y,nx)] + omega *
-		       	(n_equ[3] - tf3[pos(x,y,nx)]);
-		f4[pos(x,y,nx)] = tf4[pos(x,y,nx)] + omega *
-		       	(n_equ[4] - tf4[pos(x,y,nx)]);
-		f5[pos(x,y,nx)] = tf5[pos(x,y,nx)] + omega *
-		       	(n_equ[5] - tf5[pos(x,y,nx)]);
-		f6[pos(x,y,nx)] = tf6[pos(x,y,nx)] + omega *
-		       	(n_equ[6] - tf6[pos(x,y,nx)]);
-		f7[pos(x,y,nx)] = tf7[pos(x,y,nx)] + omega *
-		       	(n_equ[7] - tf7[pos(x,y,nx)]);
+		f0[pos(x,y,nx)] = tf0[pos(x,y,nx)] + omega * (n_equ[0] - tf0[pos(x,y,nx)]);
+		f1[pos(x,y,nx)] = tf1[pos(x,y,nx)] + omega * (n_equ[1] - tf1[pos(x,y,nx)]);
+		f2[pos(x,y,nx)] = tf2[pos(x,y,nx)] + omega * (n_equ[2] - tf2[pos(x,y,nx)]);
+		f3[pos(x,y,nx)] = tf3[pos(x,y,nx)] + omega * (n_equ[3] - tf3[pos(x,y,nx)]);
+		f4[pos(x,y,nx)] = tf4[pos(x,y,nx)] + omega * (n_equ[4] - tf4[pos(x,y,nx)]);
+		f5[pos(x,y,nx)] = tf5[pos(x,y,nx)] + omega * (n_equ[5] - tf5[pos(x,y,nx)]);
+		f6[pos(x,y,nx)] = tf6[pos(x,y,nx)] + omega * (n_equ[6] - tf6[pos(x,y,nx)]);
+		f7[pos(x,y,nx)] = tf7[pos(x,y,nx)] + omega * (n_equ[7] - tf7[pos(x,y,nx)]);
 		//for (i = 0; i < l->n; i++) {
 		//	l->node[x][y][i] = l->temp[x][y][i] + omega * (n_equ[i] - l->temp[x][y][i]);
 		//}	
@@ -465,10 +457,10 @@ void lb::write_results( const char *file )
 	//local variables
 	int x, y, i;
 	bool obsval;
-	double u_x, u_y, d_loc, press;
+	float u_x, u_y, d_loc, press;
 
 	//Square speed of sound
-	double c_squ = 1.0 / 3.0;
+	float c_squ = 1.0 / 3.0;
 
 	//Open results output file
 	FILE *archive = fopen(file, "w");
