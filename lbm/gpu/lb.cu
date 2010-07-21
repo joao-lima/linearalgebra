@@ -13,7 +13,7 @@ lb::lb() {}
 __device__ inline unsigned int pos( const int x, const int y,
 		const int n ) 
 {
-	return ( x*n + y );
+	return ( y * nx + x );
 }
 
 void lb::read( const char *parameters, const char *obstacles )
@@ -151,25 +151,25 @@ __global__ void redistribute_kernel( float * f1, float * f3, float * f5,
     //for (y = 0; y < l->ly; y++) {
     //check to avoid negative densities
     //check false | true
-    if ( (obst[row * ny] == false) && ((f3[row * ny] - t_1) > 0) && 
-                 ((f6[row * ny] - t_2) > 0) && (f7[row * ny] - t_2 > 0)) {
+    if ( (obst[row * nx] == false) && ((f3[row * nx] - t_1) > 0) && 
+                 ((f6[row * nx] - t_2) > 0) && (f7[row * nx] - t_2 > 0)) {
       //increase east
-      f1[row * ny] += t_1;
+      f1[row * nx] += t_1;
       //l->node[0][y][1] += t_1;
       //decrease west
-      f3[row * ny] -= t_1;
+      f3[row * nx] -= t_1;
       //l->node[0][y][3] -= t_1;
       //increase north-east
-      f5[row * ny] += t_2;
+      f5[row * nx] += t_2;
       //l->node[0][y][5] += t_2;
       //decrease north-west
-      f6[row * ny] -= t_2;
+      f6[row * nx] -= t_2;
       //l->node[0][y][6] -= t_2;
       //decrease south-west
-      f7[row * ny] -= t_2;
+      f7[row * nx] -= t_2;
       //l->node[0][y][7] -= t_2;
       //increase south-east
-      f8[row * ny] += t_2;
+      f8[row * nx] += t_2;
       //l->node[0][y][8] += t_2;
     }
   //}
@@ -219,31 +219,31 @@ __global__ void propagate_kernel(
 	//density propagation
 	//zero
 	//l->temp[x][y][0] = l->node[x][y][0];
-	tf0[pos(x,y,ny)] = f0[pos(x,y,ny)];
+	tf0[pos(x,y,nx)] = f0[pos(x,y,nx)];
 	//east
 	//l->temp[x_e][y][1] = l->node[x][y][1];
-	tf1[pos(x_e,y,ny)] = f1[pos(x,y,ny)];
+	tf1[pos(x_e,y,nx)] = f1[pos(x,y,nx)];
 	//north
 	//l->temp[x][y_n][2] = l->node[x][y][2];
-	tf2[pos(x,y_n,ny)] = f2[pos(x,y,ny)];
+	tf2[pos(x,y_n,nx)] = f2[pos(x,y,nx)];
 	//west
 	//l->temp[x_w][y][3] = l->node[x][y][3];
-	tf3[pos(x_w,y,ny)] = f3[pos(x,y,ny)];
+	tf3[pos(x_w,y,nx)] = f3[pos(x,y,nx)];
 	//south
 	//l->temp[x][y_s][4] = l->node[x][y][4];
-	tf4[pos(x,y_s,ny)] = f4[pos(x,y,ny)];
+	tf4[pos(x,y_s,nx)] = f4[pos(x,y,nx)];
 	//north-east
 	//l->temp[x_e][y_n][5] = l->node[x][y][5];
-	tf5[pos(x_e,y_n,ny)] = f5[pos(x,y,ny)];
+	tf5[pos(x_e,y_n,nx)] = f5[pos(x,y,nx)];
 	//north-west
 	//l->temp[x_w][y_n][6] = l->node[x][y][6];
-	tf6[pos(x_w,y_n,ny)] = f6[pos(x,y,ny)];
+	tf6[pos(x_w,y_n,nx)] = f6[pos(x,y,nx)];
 	//south-west
 	//l->temp[x_w][y_s][7] = l->node[x][y][7];
-	tf7[pos(x_w,y_s,ny)] = f7[pos(x,y,ny)];
+	tf7[pos(x_w,y_s,nx)] = f7[pos(x,y,nx)];
 	//south-east
 	//l->temp[x_e][y_s][8] = l->node[x][y][8];
-	tf8[pos(x_e,y_s,ny)] = f8[pos(x,y,ny)];
+	tf8[pos(x_e,y_s,nx)] = f8[pos(x,y,nx)];
 //		}
 //	}
 }
@@ -290,7 +290,7 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
 
       if ( (row > ny) || (col > nx) ) return;
 
-      if ( obst[row * nx + col] ){
+      if ( obst[row * ny + col] ){
         //east
         f1[row * nx + col] = tf3[row * nx + col];
         //north
@@ -358,20 +358,24 @@ __global__ void relaxation_kernel(
 	if( (y > ny) || (x > nx) ) return;
 	if ( obst[pos(x,y,ny)] == false ) {
 		d_loc = tf0[pos(x,y,ny)];
-		d_loc += d_loc + tf1[pos(x,y,ny)];
-		d_loc += d_loc + tf2[pos(x,y,ny)];
-		d_loc += d_loc + tf3[pos(x,y,ny)];
-		d_loc += d_loc + tf4[pos(x,y,ny)];
-		d_loc += d_loc + tf5[pos(x,y,ny)];
-		d_loc += d_loc + tf6[pos(x,y,ny)];
-		d_loc += d_loc + tf7[pos(x,y,ny)];
-		d_loc += d_loc + tf8[pos(x,y,ny)];
+		d_loc += d_loc + tf1[pos(x,y,nx)];
+		d_loc += d_loc + tf2[pos(x,y,nx)];
+		d_loc += d_loc + tf3[pos(x,y,nx)];
+		d_loc += d_loc + tf4[pos(x,y,nx)];
+		d_loc += d_loc + tf5[pos(x,y,nx)];
+		d_loc += d_loc + tf6[pos(x,y,nx)];
+		d_loc += d_loc + tf7[pos(x,y,nx)];
+		d_loc += d_loc + tf8[pos(x,y,nx)];
 
 		//x-, and y- velocity components
-		u_x = (tf1[pos(x,y,ny)] + tf5[pos(x,y,ny)] + tf8[pos(x,y,ny)] - (tf3[pos(x,y,ny)] + tf6[pos(x,y,ny)] + tf7[pos(x,y,ny)])) / d_loc;
+		u_x = (tf1[pos(x,y,nx)] + tf5[pos(x,y,nx)] + tf8[pos(x,y,nx)] -
+				(tf3[pos(x,y,nx)] + tf6[pos(x,y,nx)] +
+				 tf7[pos(x,y,nx)])) / d_loc;
 		//u_x = (l->temp[x][y][1] + l->temp[x][y][5] + l->temp[x][y][8] - (l->temp[x][y][3] + l->temp[x][y][6] + l->temp[x][y][7])) / d_loc;
 
-		u_y = (tf2[pos(x,y,ny)] + tf5[pos(x,y,ny)] + tf6[pos(x,y,ny)] - (tf4[pos(x,y,ny)] + tf7[pos(x,y,ny)] + tf8[pos(x,y,ny)])) / d_loc;
+		u_y = (tf2[pos(x,y,nx)] + tf5[pos(x,y,nx)] + tf6[pos(x,y,nx)] -
+				(tf4[pos(x,y,nx)] + tf7[pos(x,y,nx)] +
+				 tf8[pos(x,y,nx)])) / d_loc;
 		//u_y = (l->temp[x][y][2] + l->temp[x][y][5] + l->temp[x][y][6] - (l->temp[x][y][4] + l->temp[x][y][7] + l->temp[x][y][8])) / d_loc;
 
 		//square velocity
@@ -404,22 +408,22 @@ __global__ void relaxation_kernel(
 
 		
 		//relaxation step
-		f0[pos(x,y,ny)] = tf0[pos(x,y,ny)] + omega *
-		       	(n_equ[0] - tf0[pos(x,y,ny)]);
-		f1[pos(x,y,ny)] = tf1[pos(x,y,ny)] + omega *
-		       	(n_equ[1] - tf1[pos(x,y,ny)]);
-		f2[pos(x,y,ny)] = tf2[pos(x,y,ny)] + omega *
-		       	(n_equ[2] - tf2[pos(x,y,ny)]);
-		f3[pos(x,y,ny)] = tf3[pos(x,y,ny)] + omega *
-		       	(n_equ[3] - tf3[pos(x,y,ny)]);
-		f4[pos(x,y,ny)] = tf4[pos(x,y,ny)] + omega *
-		       	(n_equ[4] - tf4[pos(x,y,ny)]);
-		f5[pos(x,y,ny)] = tf5[pos(x,y,ny)] + omega *
-		       	(n_equ[5] - tf5[pos(x,y,ny)]);
-		f6[pos(x,y,ny)] = tf6[pos(x,y,ny)] + omega *
-		       	(n_equ[6] - tf6[pos(x,y,ny)]);
-		f7[pos(x,y,ny)] = tf7[pos(x,y,ny)] + omega *
-		       	(n_equ[7] - tf7[pos(x,y,ny)]);
+		f0[pos(x,y,nx)] = tf0[pos(x,y,nx)] + omega *
+		       	(n_equ[0] - tf0[pos(x,y,nx)]);
+		f1[pos(x,y,nx)] = tf1[pos(x,y,nx)] + omega *
+		       	(n_equ[1] - tf1[pos(x,y,nx)]);
+		f2[pos(x,y,nx)] = tf2[pos(x,y,nx)] + omega *
+		       	(n_equ[2] - tf2[pos(x,y,nx)]);
+		f3[pos(x,y,nx)] = tf3[pos(x,y,nx)] + omega *
+		       	(n_equ[3] - tf3[pos(x,y,nx)]);
+		f4[pos(x,y,nx)] = tf4[pos(x,y,nx)] + omega *
+		       	(n_equ[4] - tf4[pos(x,y,nx)]);
+		f5[pos(x,y,nx)] = tf5[pos(x,y,nx)] + omega *
+		       	(n_equ[5] - tf5[pos(x,y,nx)]);
+		f6[pos(x,y,nx)] = tf6[pos(x,y,nx)] + omega *
+		       	(n_equ[6] - tf6[pos(x,y,nx)]);
+		f7[pos(x,y,nx)] = tf7[pos(x,y,nx)] + omega *
+		       	(n_equ[7] - tf7[pos(x,y,nx)]);
 		//for (i = 0; i < l->n; i++) {
 		//	l->node[x][y][i] = l->temp[x][y][i] + omega * (n_equ[i] - l->temp[x][y][i]);
 		//}	

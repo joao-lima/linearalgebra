@@ -58,7 +58,7 @@ private:
 	/* returns the actual position in the array */
 	inline unsigned int pos( const int x, const int y ) const
        	{
-		return ( x*ny + y );
+		return ( y*nx + x );
 	}
 
 	void resize( const int n );
