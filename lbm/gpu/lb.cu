@@ -131,7 +131,7 @@ float lb::velocity( int time )
 	return u_x / n_free;
 }
 
-__global__ void redistribute( float * f1, float * f3, float * f5, 
+__global__ void redistribute_kernel( float * f1, float * f3, float * f5, 
 	float * f6,float * f7,float * f8, bool* obst, float accel,
        	float density, int nx, int ny ) {
     //nx e ny sao as dimensoes
@@ -174,7 +174,7 @@ void lb::redistribute( void )
 	// tem de chamar esse kernel com uma dimensao apenas
 	dim3 threads( BLOCK_SIZE, 1 );
 	dim3 grid( (ny+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
-	redistribute<<< grid, threads >>>(
+	redistribute_kernel<<< grid, threads >>>(
 		thrust::raw_pointer_cast(&d_f1[0]),
 		thrust::raw_pointer_cast(&d_f2[0]),
 		thrust::raw_pointer_cast(&d_f3[0]),
