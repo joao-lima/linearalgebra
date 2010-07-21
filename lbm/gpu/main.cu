@@ -19,7 +19,7 @@ int main( int argc, char **argv )
 		lbm.redistribute();
 		lbm.propagate();
 		lbm.bounceback();
-		//lbm.relaxation();
+		lbm.relaxation();
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}

@@ -356,8 +356,8 @@ __global__ void relaxation_kernel(
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
 	if( (y > ny) || (x > nx) ) return;
-	if ( obst[pos(x,y,ny)] == false ) {
-		d_loc = tf0[pos(x,y,ny)];
+	if ( obst[pos(x,y,nx)] == false ) {
+		d_loc = tf0[pos(x,y,nx)];
 		d_loc += d_loc + tf1[pos(x,y,nx)];
 		d_loc += d_loc + tf2[pos(x,y,nx)];
 		d_loc += d_loc + tf3[pos(x,y,nx)];
