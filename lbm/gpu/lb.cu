@@ -246,7 +246,7 @@ void lb::propagate( void )
 	/* here a kernel call */
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (nx+BLOCK_SIZE-1)/threads.x, (ny+BLOCK_SIZE-1)/threads.y );
-	bounceback_kernel<<< grid, threads >>>(
+	propagate_kernel<<< grid, threads >>>(
 		thrust::raw_pointer_cast(&d_f0[0]),
 		thrust::raw_pointer_cast(&d_f1[0]),
 		thrust::raw_pointer_cast(&d_f2[0]),
