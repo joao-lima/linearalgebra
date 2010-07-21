@@ -18,7 +18,7 @@ int main( int argc, char **argv )
 	for( int i= 0; i < lbm.max_iteractions(); i++ ) {
 		lbm.redistribute();
 		lbm.propagate();
-		//lbm.bounceback();
+		lbm.bounceback();
 		//lbm.relaxation();
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );

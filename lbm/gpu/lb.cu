@@ -290,7 +290,7 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
 
       if ( (row > ny) || (col > nx) ) return;
 
-      if ( obst[row * ny + col] ){
+      if ( obst[row * nx + col] ){
         //east
         f1[row * nx + col] = tf3[row * nx + col];
         //north
