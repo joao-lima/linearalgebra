@@ -176,9 +176,7 @@ void lb::redistribute( void )
 	dim3 grid( (ny+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
 	redistribute_kernel<<< grid, threads >>>(
 		thrust::raw_pointer_cast(&d_f1[0]),
-		thrust::raw_pointer_cast(&d_f2[0]),
 		thrust::raw_pointer_cast(&d_f3[0]),
-		thrust::raw_pointer_cast(&d_f4[0]),
 		thrust::raw_pointer_cast(&d_f5[0]),
 		thrust::raw_pointer_cast(&d_f6[0]),
 		thrust::raw_pointer_cast(&d_f7[0]),
