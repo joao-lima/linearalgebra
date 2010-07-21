@@ -473,6 +473,15 @@ void lb::write_results( const char *file )
 	fprintf( archive, "VARIABLES = X, Y, VX, VY, PRESS, OBST\n" );
 	fprintf( archive,"ZONE I= %d, J= %d, F=POINT\n", nx, ny );
 
+	thrust::copy( d_f0.begin(), d_f0.end(), f0.begin() );
+	thrust::copy( d_f1.begin(), d_f1.end(), f1.begin() );
+	thrust::copy( d_f2.begin(), d_f2.end(), f2.begin() );
+	thrust::copy( d_f3.begin(), d_f3.end(), f3.begin() );
+	thrust::copy( d_f4.begin(), d_f4.end(), f4.begin() );
+	thrust::copy( d_f5.begin(), d_f5.end(), f5.begin() );
+	thrust::copy( d_f6.begin(), d_f6.end(), f6.begin() );
+	thrust::copy( d_f7.begin(), d_f7.end(), f7.begin() );
+	thrust::copy( d_f8.begin(), d_f8.end(), f8.begin() );
 	for( y = 0; y < ny; y++ ){
 		for( x = 0; x < nx; x++ ){
 			//if obstacle node, nothing is to do
