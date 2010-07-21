@@ -43,6 +43,8 @@ void lb::read( const char *parameters, const char *obstacles )
 	while( c < max ){
 		obs >> i;
 		obs >> j;
+		// TODO: problema aqui com indices e entrada
+		//obst[pos(i-1,j-1)] = true;
 		obst[pos(i,j)] = true;
 		c++;
 	}
