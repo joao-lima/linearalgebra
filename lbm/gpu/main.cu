@@ -16,7 +16,6 @@ int main( int argc, char **argv )
 	gettimeofday( &t1, 0 );
 	lbm.init();
 	for( int i= 0; i < lbm.max_iteractions(); i++ ) {
-//	for( int i= 0; i < 2; i++ ) {
 		lbm.redistribute();
 		lbm.propagate();
 		lbm.bounceback();
