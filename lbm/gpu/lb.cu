@@ -37,8 +37,8 @@ void lb::read( const char *parameters, const char *obstacles )
 	obs >> ndim;
 	obs >> max;
 
-	std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
-		<< " omega=" << omega << std::endl;
+	//std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
+	//	<< " omega=" << omega << std::endl;
 	resize( nx * ny );
 	while( c < max ){
 		obs >> i;

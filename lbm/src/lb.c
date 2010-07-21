@@ -86,7 +86,7 @@ s_lattice *read_obstacles(string file) {
 	fscanf(archive, "%d", &l->n);
 	fscanf(archive, "%d", &max);
 
-	printf("%d %d %d %d\n", l->lx, l->ly, l->n, max);
+	//printf("%d %d %d %d\n", l->lx, l->ly, l->n, max);
 	
 	//alloc memory
 	alloc_lattice(l);

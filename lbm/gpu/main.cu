@@ -25,7 +25,8 @@ int main( int argc, char **argv )
 	}
 	gettimeofday( &t2, 0 );
 	tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
-	std::cout << "time(s): " << tdelta << std::endl;
+	//std::cout << "time(s): " << tdelta << std::endl;
+	std::cout << tdelta << std::endl;
 	lbm.write_results( argv[3] );
 
 	return 0;
