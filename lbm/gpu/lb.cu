@@ -147,7 +147,7 @@ __global__ void redistribute_kernel( float * f1, float * f3, float * f5,
     float t_2 = density * accel / 36.0;
 
     int row = blockIdx.x * blockDim.x + threadIdx.x; 
-    if (row > ny) return;
+    if (row >= ny) return;
     //for (y = 0; y < l->ly; y++) {
     //check to avoid negative densities
     //check false | true
@@ -205,7 +205,7 @@ __global__ void propagate_kernel(
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
-	if( (y > ny) || (x > nx) ) return;
+	if( (y >= ny) || (x >= nx) ) return;
 	//for (x = 0; x < l->lx; x++) {
 	//	for(y = 0; y < l->ly; y++) {
 	//compute upper and right next neighbour nodes
@@ -288,7 +288,7 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
   int row = blockIdx.y * blockDim.y + threadIdx.y; 
   int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
-      if ( (row > ny) || (col > nx) ) return;
+      if ( (row >= ny) || (col >= nx) ) return;
 
       if ( obst[row * nx + col] ){
         //east
@@ -355,7 +355,7 @@ __global__ void relaxation_kernel(
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
-	if( (y > ny) || (x > nx) ) return;
+	if( (y >= ny) || (x >= nx) ) return;
 	if ( obst[pos(x,y,nx)] == false ) {
 		d_loc = tf0[pos(x,y,nx)];
 		d_loc += tf1[pos(x,y,nx)];
