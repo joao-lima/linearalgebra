@@ -78,6 +78,6 @@ int main(int argc, char **argv)
 	//execution_time = crono() - execution_time;
 	comp_rey(lattice, properties, time, execution_time);
 	write_results(argv[3], lattice, properties->density);
-	printf( "time(s): %f\n", tdelta );
+	fprintf( stdout, "%.4f\n", tdelta );
 	return 0;
 }
