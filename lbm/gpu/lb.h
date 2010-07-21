@@ -42,8 +42,13 @@ private:
 	int nx, ny, ndim;
 	
 	thrust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
-	thrust::host_vector<float> tf0, tf1, tf2, tf3, tf4, tf5, tf6, tf7, tf8;
+	thrust::device_vector<float> d_f0, d_f1, d_f2, d_f3, d_f4, d_f5,
+	       	d_f6, d_f7, d_f8;
+	// We dont need temp data in host as it remains in GPU memory
+	thrust::device_vector<float> d_tf0, d_tf1, d_tf2, d_tf3, d_tf4,
+	       	d_tf5, d_tf6, d_tf7, d_tf8;
 	thrust::host_vector<bool> obst;
+	thrust::device_vector<bool> d_obst;
 
 	/* returns the actual position in the array */
 	inline unsigned int pos( const int x, const int y ) const
