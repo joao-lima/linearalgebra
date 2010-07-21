@@ -114,14 +114,94 @@ float lb::velocity( int time )
 	return u_x / n_free;
 }
 
+//////////////////////////////////////////
+// Redistribute
+//////////////////////////////////////////
+//ESSE KERNEL TEM DE SER CHAMADO COM APENAS UMA DIMENSAO
+__global__ void redistribute(float * f1,float * f3,float * f5,float * f6,float * f7,float * f8,bool* obst, 
+              double accel, double density, int nx, int ny) {
+    //nx e ny sao as dimensoes
+    //local variables
+    int y;
+    double t_1 = density * accel / 9.0;
+    double t_2 = density * accel / 36.0;
+
+    int row = blockIdx.x * blockDim.x + threadIdx.x; 
+    if (row >= ny) return;
+    //for (y = 0; y < l->ly; y++) {
+    //check to avoid negative densities
+    //check false | true
+    if ((obst[row * nx] == false) && ((f3[row * nx] - t_1) > 0) && 
+                 ((f6[row * nx] - t_2) > 0) && (f7[row * nx] - t_2 > 0)) {
+      //increase east
+      f1[row * nx] += t_1;
+      //l->node[0][y][1] += t_1;
+      //decrease west
+      f3[row * nx] -= t_1;
+      //l->node[0][y][3] -= t_1;
+      //increase north-east
+      f5[row * nx] += t_2;
+      //l->node[0][y][5] += t_2;
+      //decrease north-west
+      f6[row * nx] -= t_2;
+      //l->node[0][y][6] -= t_2;
+      //decrease south-west
+      f7[row * nx] -= t_2;
+      //l->node[0][y][7] -= t_2;
+      //increase south-east
+      f8[row * nx] += t_2;
+      //l->node[0][y][8] += t_2;
+    }
+  //}
+}
+
 void lb::redistribute( void )
 {
 	/* here a kernel call */
+// tem de chamar esse kernel com uma dimensao apenas
+
 }
 
 void lb::propagate( void )
 {
 	/* here a kernel call */
+}
+
+//////////////////////////////////////////
+// Bounceback
+//////////////////////////////////////////
+
+__global__ void bounceback(float * f1,float * f2,float * f3,float * f4,float * f5,float * f6,float * f7,float * f8,
+            float * tf1,float * tf2,float * tf3,float * tf4,float * tf5,float * tf6,float * tf7,float * tf8,bool* obst,
+            int nx, int ny) {
+  //local variables
+  //TODO ver o acesso a memoria. nao fica totalmente desalinhado usando 8 vetores nao?
+  //-- indexes
+  int row = blockIdx.y * blockDim.y + threadIdx.y; 
+  int col = blockIdx.x * blockDim.x + threadIdx.x; 
+
+      //como sei qual as dimensoes totais das matrizes
+      if ((row > dimx) or (col > dimy)) return;//verifica quais threads devem executar
+      if (obst[row * nx + col]){
+        //east
+        f1[row * nx + col] = tf3[row * nx + col];
+        //north
+        f2[row * nx + col] = tf4[row * nx + col];
+        //west
+        f3[row * nx + col] = tf1[row * nx + col];
+        //south
+        f4[row * nx + col] = tf2[row * nx + col];
+        //north-east
+        f5[row * nx + col] = tf7[row * nx + col];
+        //north-west
+        f6[row * nx + col] = tf8[row * nx + col];
+        //south-west
+        f7[row * nx + col] = tf5[row * nx + col];
+        //south-east
+        f8[row * nx + col] = tf6[row * nx + col];
+      }
+    }
+  }
 }
 
 void lb::bounceback( void )
