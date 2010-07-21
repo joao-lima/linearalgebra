@@ -124,6 +124,47 @@ void lb::propagate( void )
 	/* here a kernel call */
 }
 
+//////////////////////////////////////////
+// Bounceback
+//////////////////////////////////////////
+
+__global__ void bounceback(float * f1,float * f2,float * f3,float * f4,float * f5,float * f6,float * f7,float * f8,
+            float * tf1,float * tf2,float * tf3,float * tf4,float * tf5,float * tf6,float * tf7,float * tf8,bool* obst) {
+  //local variables
+  //TODO ver o acesso a memoria. nao fica totalmente desalinhado usando 8 vetores nao?
+  //TODO SIZE, dimx, dimy precisam ser definido. se ja estiver preciso saber qual eh
+  int SIZE = -1, dimx = -1, dimy = -1;
+  //-- indexes
+  int row = blockIdx.y * blockDim.y + threadIdx.y; 
+  int col = blockIdx.x * blockDim.x + threadIdx.x; 
+
+      //como sei qual as dimensoes totais das matrizes
+      if ((row > dimx) or (col > dimy)) return;//verifica quais threads devem executar
+      if (obst[row * SIZE + col]){
+        //east
+        f1[row * SIZE + col] = tf3[row * SIZE + col];
+        //north
+        f2[row * SIZE + col] = tf4[row * SIZE + col];
+        //west
+        f3[row * SIZE + col] = tf1[row * SIZE + col];
+        //south
+        f4[row * SIZE + col] = tf2[row * SIZE + col];
+        //north-east
+        f5[row * SIZE + col] = tf7[row * SIZE + col];
+        //north-west
+        f6[row * SIZE + col] = tf8[row * SIZE + col];
+        //south-west
+        f7[row * SIZE + col] = tf5[row * SIZE + col];
+        //south-east
+        f8[row * SIZE + col] = tf6[row * SIZE + col];
+      }
+    }
+  }
+}
+
+
+
+
 void lb::bounceback( void )
 {
 	/* here a kernel call */
