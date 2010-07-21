@@ -190,10 +190,11 @@ void lb::propagate( void )
 	/* here a kernel call */
 }
 
-#if 0
-__global__ void bounceback(float * f1,float * f2,float * f3,float * f4,float * f5,float * f6,float * f7,float * f8,
-            float * tf1,float * tf2,float * tf3,float * tf4,float * tf5,float * tf6,float * tf7,float * tf8,bool* obst,
-            int nx, int ny) {
+__global__ void bounceback_kernel( float * f1, float * f2, float * f3,
+		float * f4, float * f5, float * f6, float * f7, float * f8,
+		float * tf1, float * tf2, float * tf3, float * tf4, 
+		float * tf5, float * tf6, float * tf7, float * tf8,
+		bool* obst, int nx, int ny) {
   //local variables
   //TODO ver o acesso a memoria. nao fica totalmente desalinhado usando 8 vetores nao?
   //-- indexes
@@ -201,7 +202,9 @@ __global__ void bounceback(float * f1,float * f2,float * f3,float * f4,float * f
   int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
       //como sei qual as dimensoes totais das matrizes
-      if ((row > dimx) or (col > dimy)) return;//verifica quais threads devem executar
+      //verifica quais threads devem executar
+      if ((row > dimx) || (col > dimy)) return;
+
       if (obst[row * nx + col]){
         //east
         f1[row * nx + col] = tf3[row * nx + col];
@@ -223,11 +226,33 @@ __global__ void bounceback(float * f1,float * f2,float * f3,float * f4,float * f
     }
   }
 }
-#endif
 
 void lb::bounceback( void )
 {
 	/* here a kernel call */
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (nx+BLOCK_SIZE-1)/threads.x, (ny+BLOCK_SIZE-1)/threads.y );
+	bounceback_kernel<<< grid, threads >>>(
+		thrust::raw_pointer_cast(&d_f1[0]),
+		thrust::raw_pointer_cast(&d_f2[0]),
+		thrust::raw_pointer_cast(&d_f3[0]),
+		thrust::raw_pointer_cast(&d_f4[0]),
+		thrust::raw_pointer_cast(&d_f5[0]),
+		thrust::raw_pointer_cast(&d_f6[0]),
+		thrust::raw_pointer_cast(&d_f7[0]),
+		thrust::raw_pointer_cast(&d_f8[0]),
+		// temps from here
+		thrust::raw_pointer_cast(&d_tf1[0]),
+		thrust::raw_pointer_cast(&d_tf2[0]),
+		thrust::raw_pointer_cast(&d_tf3[0]),
+		thrust::raw_pointer_cast(&d_tf4[0]),
+		thrust::raw_pointer_cast(&d_tf5[0]),
+		thrust::raw_pointer_cast(&d_tf6[0]),
+		thrust::raw_pointer_cast(&d_tf7[0]),
+		thrust::raw_pointer_cast(&d_tf8[0]),
+		// others
+		thrust::raw_pointer_cast(&d_obst[0]),
+		accel, density, nx, ny );
 }
 
 #if 0
