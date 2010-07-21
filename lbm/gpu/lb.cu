@@ -248,7 +248,7 @@ void lb::bounceback( void )
 		thrust::raw_pointer_cast(&d_tf8[0]),
 		// others
 		thrust::raw_pointer_cast(&d_obst[0]),
-		accel, density, nx, ny );
+		nx, ny );
 }
 
 #if 0
