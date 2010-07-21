@@ -33,6 +33,7 @@ public:
 	void propagate( void );
 	void bounceback( void );
 	void relaxation( void );
+	void write_results( const char *file );
 
 private:
 	// Lattice

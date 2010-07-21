@@ -456,7 +456,7 @@ void lb::relaxation( void )
 		nx, ny, omega );
 }
 
-void lb::write_results( char *file ) 
+void lb::write_results( const char *file ) 
 {
 	//local variables
 	int x, y, i;
