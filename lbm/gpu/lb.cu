@@ -1,9 +1,9 @@
 
 #include <iostream>
 #include <fstream>
-#include <thust/host_vector.h>
-#include <thust/device_vector.h>
-#include <thust/copy.h>
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
+#include <thrust/copy.h>
 
 #include "lb.h"
 
