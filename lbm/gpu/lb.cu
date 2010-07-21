@@ -185,9 +185,89 @@ void lb::redistribute( void )
 		accel, density, nx, ny );
 }
 
+__global__ void propagate_kernel( 
+	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
+	float *f6, float *f7, float *f8,
+	float *tf0, float *tf1, float *tf2, float *tf3, float *tf4, 
+	float *tf5, float *tf6, float *tf7, float *tf8,
+	int nx, int ny )
+{
+        //local variables
+	//int x, y;
+	int x_e = 0, x_w = 0, y_n = 0, y_s = 0;
+	int y = blockIdx.y * blockDim.y + threadIdx.y; 
+	int x = blockIdx.x * blockDim.x + threadIdx.x; 
+
+	if( (y > ny) || (x > nx) ) return;
+	//for (x = 0; x < l->lx; x++) {
+	//	for(y = 0; y < l->ly; y++) {
+	//compute upper and right next neighbour nodes
+	x_e = (x + 1)%nx;
+	y_n = (y + 1)%ny;
+	
+	//compute lower and left next neighbour nodes
+	x_w = (x - 1 + nx)%nx;
+	y_s = (y - 1 + ny)%ny;
+	
+	//density propagation
+	//zero
+	//l->temp[x][y][0] = l->node[x][y][0];
+	tf0[pos(x,y,ny)] = f0[pos(x,y,ny)];
+	//east
+	//l->temp[x_e][y][1] = l->node[x][y][1];
+	tf1[pos(x_e,y,ny)] = f1[pos(x,y,ny)];
+	//north
+	//l->temp[x][y_n][2] = l->node[x][y][2];
+	tf2[pos(x,y_n,ny)] = f2[pos(x,y,ny)];
+	//west
+	//l->temp[x_w][y][3] = l->node[x][y][3];
+	tf3[pos(x_w,y,ny)] = f3[pos(x,y,ny)];
+	//south
+	//l->temp[x][y_s][4] = l->node[x][y][4];
+	tf4[pos(x,y_s,ny)] = f4[pos(x,y,ny)];
+	//north-east
+	//l->temp[x_e][y_n][5] = l->node[x][y][5];
+	tf5[pos(x_e,y_n,ny)] = f5[pos(x,y,ny)];
+	//north-west
+	//l->temp[x_w][y_n][6] = l->node[x][y][6];
+	tf6[pos(x_w,y_n,ny)] = f6[pos(x,y,ny)];
+	//south-west
+	//l->temp[x_w][y_s][7] = l->node[x][y][7];
+	tf7[pos(x_w,y_s,ny)] = f7[pos(x,y,ny)];
+	//south-east
+	//l->temp[x_e][y_s][8] = l->node[x][y][8];
+	tf8[pos(x_e,y_s,ny)] = f8[pos(x,y,ny)];
+//		}
+//	}
+}
+
 void lb::propagate( void )
 {
 	/* here a kernel call */
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (nx+BLOCK_SIZE-1)/threads.x, (ny+BLOCK_SIZE-1)/threads.y );
+	bounceback_kernel<<< grid, threads >>>(
+		thrust::raw_pointer_cast(&d_f0[0]),
+		thrust::raw_pointer_cast(&d_f1[0]),
+		thrust::raw_pointer_cast(&d_f2[0]),
+		thrust::raw_pointer_cast(&d_f3[0]),
+		thrust::raw_pointer_cast(&d_f4[0]),
+		thrust::raw_pointer_cast(&d_f5[0]),
+		thrust::raw_pointer_cast(&d_f6[0]),
+		thrust::raw_pointer_cast(&d_f7[0]),
+		thrust::raw_pointer_cast(&d_f8[0]),
+		// temps from here
+		thrust::raw_pointer_cast(&d_tf0[0]),
+		thrust::raw_pointer_cast(&d_tf1[0]),
+		thrust::raw_pointer_cast(&d_tf2[0]),
+		thrust::raw_pointer_cast(&d_tf3[0]),
+		thrust::raw_pointer_cast(&d_tf4[0]),
+		thrust::raw_pointer_cast(&d_tf5[0]),
+		thrust::raw_pointer_cast(&d_tf6[0]),
+		thrust::raw_pointer_cast(&d_tf7[0]),
+		thrust::raw_pointer_cast(&d_tf8[0]),
+		// others
+		nx, ny );
 }
 
 __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
