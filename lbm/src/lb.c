@@ -7,7 +7,8 @@
 //////////////////////////////////////////
 // Read_parametrs
 //////////////////////////////////////////
-s_properties *read_parametrs(string file) {
+s_properties *read_parametrs(string file) 
+{
 	//struct with macroscopic properties of a fluid
 	s_properties *p = (s_properties*) malloc(sizeof(s_properties));
 	//Open input file
@@ -112,7 +113,8 @@ s_lattice *read_obstacles(string file) {
 //////////////////////////////////////////
 // Init_density
 //////////////////////////////////////////
-void init_density(s_lattice * l, double density) {
+void init_density(s_lattice * l, double density) 
+{
 	//local variables
 	int x, y;
 	double t_0 = density * 4.0 / 9.0;
@@ -166,7 +168,8 @@ void redistribute(s_lattice *l, double accel, double density) {
 	double t_1 = density * accel / 9.0;
 	double t_2 = density * accel / 36.0;
 
-	for (y = 0; y < l->ly; y++) {
+	for (y = 0; y < l->ly; y++) 
+	{
 		//check to avoid negative densities
 		//check false | true
 		if (l->obst[0][y] == false && l->node[0][y][3] - t_1 > 0 && l->node[0][y][6] - t_2 > 0 && l->node[0][y][7] - t_2 > 0) {
@@ -196,9 +199,6 @@ void propagate(s_lattice *l) {
 	int x_e = 0, x_w = 0, y_n = 0, y_s = 0;
 	//
 	for (x = 0; x < l->lx; x++) {
-		//
-		//
-		
 		for(y = 0; y < l->ly; y++) {
 			//compute upper and right next neighbour nodes
 			x_e = (x + 1)%l->lx;
@@ -209,7 +209,6 @@ void propagate(s_lattice *l) {
 			y_s = (y - 1 + l->ly)%l->ly;
 			
 			//density propagation
-			
 			//zero
 			l->temp[x][y][0] = l->node[x][y][0];
 			//east
@@ -351,11 +350,13 @@ double calc_velocity(s_lattice *l, int time) {
 		}
 	}
 	//Optional
+#if 0
 	if (time%500 == 0) {
 		FILE *c = fopen("convergence9.out", "a");
 		fprintf(c, "%d %lf\n", time, u_x / n_free);
 		fclose(c);
 	}
+#endif
 	return u_x / n_free;
 }
 
@@ -363,9 +364,8 @@ double calc_velocity(s_lattice *l, int time) {
 ////////////////////////////////////////////
 //// Write_results
 ////////////////////////////////////////////
-void write_results(string file, s_lattice *l, double density) {
-//
-//
+void write_results(string file, s_lattice *l, double density) 
+{
 	//local variables
 	int x, y, i;
 	bool obsval;

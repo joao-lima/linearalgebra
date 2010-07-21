@@ -1,10 +1,9 @@
+
 #include "lb.h"
 
 ///////////////////////////////////////////////
-int main(int argc, char **argv) {
-	
-	//Parameters
-
+int main(int argc, char **argv) 
+{
 	//Iteration counter
 	int time;
 
@@ -54,36 +53,31 @@ int main(int argc, char **argv) {
 
 	execution_time = crono();
         struct timeval t1, t2;
-        gettimeofday( &t1, 0 );
 
 	//Begin of the main loop
+        gettimeofday( &t1, 0 );
 	for (time = 0; time < properties->t_max; time++) {
-//	for (time = 0; time < 2; time++) {
-
-		 if (!(time%(properties->t_max/1))) {
+		/*
+		if (!(time%(properties->t_max/1))) {
 			check_density(lattice, time);
 		}
+		*/
 		
 		redistribute(lattice, properties->accel, properties->density);
-
 		propagate(lattice);
-
 		bounceback(lattice);
-
 		relaxation(lattice, properties->density, properties->omega);
-
+		/*
 		vel = calc_velocity(lattice, time);
 		printf("%d %f\n", time, vel);
+		*/
 	}
         gettimeofday( &t2, 0 );
         tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
       
-	execution_time = crono() - execution_time;
-		
+	//execution_time = crono() - execution_time;
 	comp_rey(lattice, properties, time, execution_time);
-
 	write_results(argv[3], lattice, properties->density);
-
-	printf("time(s): %f\n\n",tdelta);
-	return 1;
+	printf( "time(s): %f\n", tdelta );
+	return 0;
 }
