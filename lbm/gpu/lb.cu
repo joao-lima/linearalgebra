@@ -104,7 +104,7 @@ float lb::velocity( int time )
 
 	for( y = 0; y < ny; y++ ) {
 		if ( obst[pos(x,y)] == false ){
-			d_loc = d_loc + f0[pos(x,y)];
+			d_loc = f0[pos(x,y)];
 			d_loc += d_loc + f1[pos(x,y)];
 			d_loc += d_loc + f2[pos(x,y)];
 			d_loc += d_loc + f3[pos(x,y)];
@@ -254,7 +254,7 @@ void lb::bounceback( void )
 __device__ inline unsigned int pos( const int x, const int y,
 		const int n ) const
 {
-	return ( x*ny + y );
+	return ( x*n + y );
 }
 
 __global__ void relaxation_kernel( 
@@ -276,7 +276,7 @@ __global__ void relaxation_kernel(
 
 	if( (y > ny) || (x > nx) ) return;
 	if ( obst[pos(x,y,ny)] == false ) {
-		d_loc = d_loc + tf0[pos(x,y,ny)];
+		d_loc = tf0[pos(x,y,ny)];
 		d_loc += d_loc + tf1[pos(x,y,ny)];
 		d_loc += d_loc + tf2[pos(x,y,ny)];
 		d_loc += d_loc + tf3[pos(x,y,ny)];
