@@ -17,13 +17,9 @@ int main( int argc, char **argv )
 	lbm.init();
 	for( int i= 0; i < lbm.max_iteractions(); i++ ) {
 		lbm.redistribute();
-	  cudaThreadSynchronize();
 		lbm.propagate();
-	  cudaThreadSynchronize();
 		lbm.bounceback();
-	  cudaThreadSynchronize();
 		lbm.relaxation();
-	  cudaThreadSynchronize();
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}
