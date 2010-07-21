@@ -251,14 +251,12 @@ void lb::bounceback( void )
 		nx, ny );
 }
 
-#if 0
 __global__ void relaxation( 
-	float *f0, float * f1, float * f2, float * f3, float * f4, float * f5,
-	float * f6, float * f7, float * f8,
-	float *tf0, float * tf1, float * tf2, float * tf3, float * tf4, 
-	float *tf5, float * tf6, float * tf7, float * tf8, bool* obst,
-	int nx, int ny, float omega
-	)
+	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
+	float *f6, float *f7, float *f8,
+	float *tf0, float *tf1, float *tf2, float *tf3, float *tf4, 
+	float *tf5, float *tf6, float *tf7, float *tf8, bool* obst,
+	int nx, int ny, float omega )
 {
 	//local variables
 	float c_squ = 1.0 / 3.0;
@@ -271,22 +269,22 @@ __global__ void relaxation(
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
 	if( (y > ny) || (x > nx) ) return;
-	if ( obst[pos(x,y)] == false ) {
-		d_loc = d_loc + tf0[pos(x,y)];
-		d_loc += d_loc + tf1[pos(x,y)];
-		d_loc += d_loc + tf2[pos(x,y)];
-		d_loc += d_loc + tf3[pos(x,y)];
-		d_loc += d_loc + tf4[pos(x,y)];
-		d_loc += d_loc + tf5[pos(x,y)];
-		d_loc += d_loc + tf6[pos(x,y)];
-		d_loc += d_loc + tf7[pos(x,y)];
-		d_loc += d_loc + tf8[pos(x,y)];
+	if ( obst[pos(x,y,ny)] == false ) {
+		d_loc = d_loc + tf0[pos(x,y,ny)];
+		d_loc += d_loc + tf1[pos(x,y,ny)];
+		d_loc += d_loc + tf2[pos(x,y,ny)];
+		d_loc += d_loc + tf3[pos(x,y,ny)];
+		d_loc += d_loc + tf4[pos(x,y,ny)];
+		d_loc += d_loc + tf5[pos(x,y,ny)];
+		d_loc += d_loc + tf6[pos(x,y,ny)];
+		d_loc += d_loc + tf7[pos(x,y,ny)];
+		d_loc += d_loc + tf8[pos(x,y,ny)];
 
 		//x-, and y- velocity components
-		u_x = (tf1[pos(x,y)] + tf5[pos(x,y)] + tf8[pos(x,y)] - (tf3[pos(x,y)] + tf6[pos(x,y)] + tf7[pos(x,y)])) / d_loc;
+		u_x = (tf1[pos(x,y,ny)] + tf5[pos(x,y,ny)] + tf8[pos(x,y,ny)] - (tf3[pos(x,y,ny)] + tf6[pos(x,y,ny)] + tf7[pos(x,y,ny)])) / d_loc;
 		//u_x = (l->temp[x][y][1] + l->temp[x][y][5] + l->temp[x][y][8] - (l->temp[x][y][3] + l->temp[x][y][6] + l->temp[x][y][7])) / d_loc;
 
-		u_y = (tf2[pos(x,y)] + tf5[pos(x,y)] + tf6[pos(x,y)] - (tf4[pos(x,y)] + tf7[pos(x,y)] + tf8[pos(x,y)])) / d_loc;
+		u_y = (tf2[pos(x,y,ny)] + tf5[pos(x,y,ny)] + tf6[pos(x,y,ny)] - (tf4[pos(x,y,ny)] + tf7[pos(x,y,ny)] + tf8[pos(x,y,ny)])) / d_loc;
 		//u_y = (l->temp[x][y][2] + l->temp[x][y][5] + l->temp[x][y][6] - (l->temp[x][y][4] + l->temp[x][y][7] + l->temp[x][y][8])) / d_loc;
 
 		//square velocity
@@ -319,30 +317,54 @@ __global__ void relaxation(
 
 		
 		//relaxation step
-		f0[pos(x,y)] = tf0[pos(x,y)] + omega *
-		       	(n_equ[0] - tf0[pos(x,y)]);
-		f1[pos(x,y)] = tf1[pos(x,y)] + omega *
-		       	(n_equ[1] - tf1[pos(x,y)]);
-		f2[pos(x,y)] = tf2[pos(x,y)] + omega *
-		       	(n_equ[2] - tf2[pos(x,y)]);
-		f3[pos(x,y)] = tf3[pos(x,y)] + omega *
-		       	(n_equ[3] - tf3[pos(x,y)]);
-		f4[pos(x,y)] = tf4[pos(x,y)] + omega *
-		       	(n_equ[4] - tf4[pos(x,y)]);
-		f5[pos(x,y)] = tf5[pos(x,y)] + omega *
-		       	(n_equ[5] - tf5[pos(x,y)]);
-		f6[pos(x,y)] = tf6[pos(x,y)] + omega *
-		       	(n_equ[6] - tf6[pos(x,y)]);
-		f7[pos(x,y)] = tf7[pos(x,y)] + omega *
-		       	(n_equ[7] - tf7[pos(x,y)]);
+		f0[pos(x,y,ny)] = tf0[pos(x,y,ny)] + omega *
+		       	(n_equ[0] - tf0[pos(x,y,ny)]);
+		f1[pos(x,y,ny)] = tf1[pos(x,y,ny)] + omega *
+		       	(n_equ[1] - tf1[pos(x,y,ny)]);
+		f2[pos(x,y,ny)] = tf2[pos(x,y,ny)] + omega *
+		       	(n_equ[2] - tf2[pos(x,y,ny)]);
+		f3[pos(x,y,ny)] = tf3[pos(x,y,ny)] + omega *
+		       	(n_equ[3] - tf3[pos(x,y,ny)]);
+		f4[pos(x,y,ny)] = tf4[pos(x,y,ny)] + omega *
+		       	(n_equ[4] - tf4[pos(x,y,ny)]);
+		f5[pos(x,y,ny)] = tf5[pos(x,y,ny)] + omega *
+		       	(n_equ[5] - tf5[pos(x,y,ny)]);
+		f6[pos(x,y,ny)] = tf6[pos(x,y,ny)] + omega *
+		       	(n_equ[6] - tf6[pos(x,y,ny)]);
+		f7[pos(x,y,ny)] = tf7[pos(x,y,ny)] + omega *
+		       	(n_equ[7] - tf7[pos(x,y,ny)]);
 		//for (i = 0; i < l->n; i++) {
 		//	l->node[x][y][i] = l->temp[x][y][i] + omega * (n_equ[i] - l->temp[x][y][i]);
 		//}	
 	}
 }
-#endif
 
 void lb::relaxation( void )
 {
 	/* here a kernel call */
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (nx+BLOCK_SIZE-1)/threads.x, (ny+BLOCK_SIZE-1)/threads.y );
+	relaxation_kernel<<< grid, threads >>>(
+		thrust::raw_pointer_cast(&d_f0[0]),
+		thrust::raw_pointer_cast(&d_f1[0]),
+		thrust::raw_pointer_cast(&d_f2[0]),
+		thrust::raw_pointer_cast(&d_f3[0]),
+		thrust::raw_pointer_cast(&d_f4[0]),
+		thrust::raw_pointer_cast(&d_f5[0]),
+		thrust::raw_pointer_cast(&d_f6[0]),
+		thrust::raw_pointer_cast(&d_f7[0]),
+		thrust::raw_pointer_cast(&d_f8[0]),
+		// temps from here
+		thrust::raw_pointer_cast(&d_tf0[0]),
+		thrust::raw_pointer_cast(&d_tf1[0]),
+		thrust::raw_pointer_cast(&d_tf2[0]),
+		thrust::raw_pointer_cast(&d_tf3[0]),
+		thrust::raw_pointer_cast(&d_tf4[0]),
+		thrust::raw_pointer_cast(&d_tf5[0]),
+		thrust::raw_pointer_cast(&d_tf6[0]),
+		thrust::raw_pointer_cast(&d_tf7[0]),
+		thrust::raw_pointer_cast(&d_tf8[0]),
+		// others
+		thrust::raw_pointer_cast(&d_obst[0]),
+		nx, ny, omega );
 }
