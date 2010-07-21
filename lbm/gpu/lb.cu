@@ -9,6 +9,12 @@
 
 lb::lb() {}
 
+__device__ inline unsigned int pos( const int x, const int y,
+		const int n ) 
+{
+	return ( x*n + y );
+}
+
 void lb::read( const char *parameters, const char *obstacles )
 {
 	std::ifstream par, obs;
@@ -329,12 +335,6 @@ void lb::bounceback( void )
 		// others
 		thrust::raw_pointer_cast(&d_obst[0]),
 		nx, ny );
-}
-
-__device__ inline unsigned int pos( const int x, const int y,
-		const int n ) 
-{
-	return ( x*n + y );
 }
 
 __global__ void relaxation_kernel( 
