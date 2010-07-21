@@ -203,7 +203,7 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
 
       if ( (row > ny) || (col > nx) ) return;
 
-      if (obst[row * nx + col]){
+      if ( obst[row * nx + col] ){
         //east
         f1[row * nx + col] = tf3[row * nx + col];
         //north
@@ -221,8 +221,6 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
         //south-east
         f8[row * nx + col] = tf6[row * nx + col];
       }
-    }
-  }
 }
 
 void lb::bounceback( void )
