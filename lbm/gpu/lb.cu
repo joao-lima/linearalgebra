@@ -1,6 +1,9 @@
 
 #include <iostream>
 #include <fstream>
+#include <thust/host_vector.h>
+#include <thust/device_vector.h>
+#include <thust/copy.h>
 
 #include "lb.h"
 
@@ -130,10 +133,9 @@ float lb::velocity( int time )
 
 __global__ void redistribute( float * f1, float * f3, float * f5, 
 	float * f6,float * f7,float * f8, bool* obst, float accel,
-       	float density, int nx, int ny) {
+       	float density, int nx, int ny ) {
     //nx e ny sao as dimensoes
     //local variables
-    int y;
     float t_1 = density * accel / 9.0;
     float t_2 = density * accel / 36.0;
 

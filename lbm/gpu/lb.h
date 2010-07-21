@@ -5,6 +5,10 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
+#ifndef BLOCK_SIZE
+#define BLOCK_SIZE 16
+#endif
+
 /* Lattice Boltzmann method -- based on Schepke and Maillard 2009
    The densities are:
    	6   2  5
