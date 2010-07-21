@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cstdio>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include <thrust/copy.h>
@@ -454,3 +455,67 @@ void lb::relaxation( void )
 		thrust::raw_pointer_cast(&d_obst[0]),
 		nx, ny, omega );
 }
+
+void lb::write_results( char *file ) 
+{
+	//local variables
+	int x, y, i;
+	bool obsval;
+	double u_x, u_y, d_loc, press;
+
+	//Square speed of sound
+	double c_squ = 1.0 / 3.0;
+
+	//Open results output file
+	FILE *archive = fopen(file, "w");
+
+	//write results
+	fprintf( archive, "VARIABLES = X, Y, VX, VY, PRESS, OBST\n" );
+	fprintf( archive,"ZONE I= %d, J= %d, F=POINT\n", nx, ny );
+
+	for( y = 0; y < ny; y++ ){
+		for( x = 0; x < nx; x++ ){
+			//if obstacle node, nothing is to do
+			if (obst[pos(x,y)] == true) {
+				//obstacle indicator
+				obsval = true;
+				//velocity components = 0
+				u_x = 0.0;
+				u_y = 0.0;
+				//pressure = average pressure
+				press = density * c_squ;
+			} else {
+				//integral local density
+				//initialize variable d_loc
+				//d_loc = 0.0;
+				//for (i = 0; i < 9; i++) {
+				//	d_loc += l->node[x][y][i];
+				//}
+				d_loc = f0[pos(x,y)];
+				d_loc += d_loc + f1[pos(x,y)];
+				d_loc += d_loc + f2[pos(x,y)];
+				d_loc += d_loc + f3[pos(x,y)];
+				d_loc += d_loc + f4[pos(x,y)];
+				d_loc += d_loc + f5[pos(x,y)];
+				d_loc += d_loc + f6[pos(x,y)];
+				d_loc += d_loc + f7[pos(x,y)];
+				d_loc += d_loc + f8[pos(x,y)];
+				// x-, and y- velocity components
+				u_x = (f1[pos(x,y)] + f5[pos(x,y)] + f8[pos(x,y)] - (f3[pos(x,y)] + f6[pos(x,y)] + f7[pos(x,y)])) / d_loc;
+				//u_x = (l->node[x][y][1] + l->node[x][y][5] + l->node[x][y][8] - (l->node[x][y][3] + l->node[x][y][6] + l->node[x][y][7])) / d_loc;
+				u_y = (f2[pos(x,y)] + f5[pos(x,y)] + f6[pos(x,y)] - (f4[pos(x,y)] + f7[pos(x,y)] + f8[pos(x,y)])) / d_loc;
+
+				//u_y = (l->node[x][y][2] + l->node[x][y][5] + l->node[x][y][6] - (l->node[x][y][4] + l->node[x][y][7] + l->node[x][y][8])) / d_loc;
+				
+				//pressure
+				press = d_loc * c_squ;
+				obsval = false;
+			}
+			fprintf( archive, "%d %d %f %f %f %d\n", x, y, u_x,
+				       	u_y, press, obsval );
+		}
+	}
+	
+	fclose(archive);
+}
+
