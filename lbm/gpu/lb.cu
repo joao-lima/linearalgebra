@@ -112,14 +112,14 @@ float lb::velocity( int time )
 	for( y = 0; y < ny; y++ ) {
 		if ( obst[pos(x,y)] == false ){
 			d_loc = f0[pos(x,y)];
-			d_loc += d_loc + f1[pos(x,y)];
-			d_loc += d_loc + f2[pos(x,y)];
-			d_loc += d_loc + f3[pos(x,y)];
-			d_loc += d_loc + f4[pos(x,y)];
-			d_loc += d_loc + f5[pos(x,y)];
-			d_loc += d_loc + f6[pos(x,y)];
-			d_loc += d_loc + f7[pos(x,y)];
-			d_loc += d_loc + f8[pos(x,y)];
+			d_loc += f1[pos(x,y)];
+			d_loc += f2[pos(x,y)];
+			d_loc += f3[pos(x,y)];
+			d_loc += f4[pos(x,y)];
+			d_loc += f5[pos(x,y)];
+			d_loc += f6[pos(x,y)];
+			d_loc += f7[pos(x,y)];
+			d_loc += f8[pos(x,y)];
 			u_x = u_x + (f1[pos(x,y)]
 				 + f5[pos(x,y)] + f8[pos(x,y)] - 
 				 (f3[pos(x,y)] + f6[pos(x,y)]
@@ -358,14 +358,14 @@ __global__ void relaxation_kernel(
 	if( (y > ny) || (x > nx) ) return;
 	if ( obst[pos(x,y,nx)] == false ) {
 		d_loc = tf0[pos(x,y,nx)];
-		d_loc += d_loc + tf1[pos(x,y,nx)];
-		d_loc += d_loc + tf2[pos(x,y,nx)];
-		d_loc += d_loc + tf3[pos(x,y,nx)];
-		d_loc += d_loc + tf4[pos(x,y,nx)];
-		d_loc += d_loc + tf5[pos(x,y,nx)];
-		d_loc += d_loc + tf6[pos(x,y,nx)];
-		d_loc += d_loc + tf7[pos(x,y,nx)];
-		d_loc += d_loc + tf8[pos(x,y,nx)];
+		d_loc += tf1[pos(x,y,nx)];
+		d_loc += tf2[pos(x,y,nx)];
+		d_loc += tf3[pos(x,y,nx)];
+		d_loc += tf4[pos(x,y,nx)];
+		d_loc += tf5[pos(x,y,nx)];
+		d_loc += tf6[pos(x,y,nx)];
+		d_loc += tf7[pos(x,y,nx)];
+		d_loc += tf8[pos(x,y,nx)];
 
 		//x-, and y- velocity components
 		u_x = (tf1[pos(x,y,nx)] + tf5[pos(x,y,nx)] + tf8[pos(x,y,nx)] -
@@ -505,14 +505,14 @@ void lb::write_results( const char *file )
 				//	d_loc += l->node[x][y][i];
 				//}
 				d_loc = f0[pos(x,y)];
-				d_loc += d_loc + f1[pos(x,y)];
-				d_loc += d_loc + f2[pos(x,y)];
-				d_loc += d_loc + f3[pos(x,y)];
-				d_loc += d_loc + f4[pos(x,y)];
-				d_loc += d_loc + f5[pos(x,y)];
-				d_loc += d_loc + f6[pos(x,y)];
-				d_loc += d_loc + f7[pos(x,y)];
-				d_loc += d_loc + f8[pos(x,y)];
+				d_loc += f1[pos(x,y)];
+				d_loc += f2[pos(x,y)];
+				d_loc += f3[pos(x,y)];
+				d_loc += f4[pos(x,y)];
+				d_loc += f5[pos(x,y)];
+				d_loc += f6[pos(x,y)];
+				d_loc += f7[pos(x,y)];
+				d_loc += f8[pos(x,y)];
 				// x-, and y- velocity components
 				u_x = (f1[pos(x,y)] + f5[pos(x,y)] + f8[pos(x,y)] - (f3[pos(x,y)] + f6[pos(x,y)] + f7[pos(x,y)])) / d_loc;
 				//u_x = (l->node[x][y][1] + l->node[x][y][5] + l->node[x][y][8] - (l->node[x][y][3] + l->node[x][y][6] + l->node[x][y][7])) / d_loc;
