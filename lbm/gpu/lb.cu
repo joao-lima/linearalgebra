@@ -201,9 +201,7 @@ __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
   int row = blockIdx.y * blockDim.y + threadIdx.y; 
   int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
-      //como sei qual as dimensoes totais das matrizes
-      //verifica quais threads devem executar
-      if ((row > dimx) || (col > dimy)) return;
+      if ( (row > ny) || (col > nx) ) return;
 
       if (obst[row * nx + col]){
         //east
