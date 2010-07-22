@@ -16,7 +16,6 @@ int main( int argc, char **argv )
 	gettimeofday( &t1, 0 );
 	lbm.init();
 	for( int i= 0; i < lbm.max_iteractions(); i++ ) {
-//	for( int i= 0; i < 2; i++ ) {
 		lbm.redistribute();
 		lbm.propagate();
 		lbm.bounceback();
@@ -26,7 +25,9 @@ int main( int argc, char **argv )
 	}
 	gettimeofday( &t2, 0 );
 	tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
-	std::cout << "time(s): " << tdelta << std::endl;
+	//std::cout << "time(s): " << tdelta << std::endl;
+	//std::cout << tdelta << std::endl;
+	fprintf( stdout, "%.4f\n", tdelta );
 	lbm.write_results( argv[3] );
 
 	return 0;

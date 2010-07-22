@@ -37,13 +37,15 @@ void lb::read( const char *parameters, const char *obstacles )
 	obs >> ndim;
 	obs >> max;
 
-	std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
-		<< " omega=" << omega << std::endl;
+	//std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
+	//	<< " omega=" << omega << std::endl;
 	resize( nx * ny );
 	while( c < max ){
 		obs >> i;
 		obs >> j;
+		// TODO: problema aqui com indices e entrada
 		obst[pos(i-1,j-1)] = true;
+		//obst[pos(i,j)] = true;
 		c++;
 	}
 	par.close();
