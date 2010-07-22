@@ -140,6 +140,10 @@ float lb::velocity( int time )
 	return u_x / n_free;
 }
 
+/*
+	REDISTRIBUTE kernel
+	Authors: Catia
+*/
 __global__ void redistribute_kernel( float * f1, float * f3, float * f5, 
 	float * f6,float * f7,float * f8, bool* obst, float accel,
        	float density, int nx, int ny ) {
@@ -194,6 +198,10 @@ void lb::redistribute( void )
 		accel, density, nx, ny );
 }
 
+/*
+	PROPAGATE kernel
+	Authors: Joao
+*/
 __global__ void propagate_kernel( 
 	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
 	float *f6, float *f7, float *f8,
@@ -279,6 +287,10 @@ void lb::propagate( void )
 		nx, ny );
 }
 
+/*
+	BOUNCEBACK kernel
+	Authors: Antonio
+*/
 __global__ void bounceback_kernel( float * f1, float * f2, float * f3,
 		float * f4, float * f5, float * f6, float * f7, float * f8,
 		float * tf1, float * tf2, float * tf3, float * tf4, 
@@ -340,6 +352,10 @@ void lb::bounceback( void )
 		nx, ny );
 }
 
+/*
+	RELAXATION kernel
+	Authors: Antonio, Catia e Joao
+*/
 __global__ void relaxation_kernel( 
 	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
 	float *f6, float *f7, float *f8,
