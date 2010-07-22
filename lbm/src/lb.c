@@ -98,9 +98,9 @@ s_lattice *read_obstacles(string file) {
 		//if(i > l->lx || j > l->ly)
 		//	printf("Obstacle input file is not valid\n\n");
 		//In the file position begin in 1
-		//l->obst[i - 1][j - 1] = true;
+		l->obst[i - 1][j - 1] = true;
 		// TODO: problema aqui com indices e entrada
-		l->obst[i][j] = true;
+		//l->obst[i][j] = true;
 		c++;
 	}
   //printf ("opa\n");
