@@ -10,7 +10,8 @@
 
 lb::lb() {}
 
-__device__ inline unsigned int pos( const int x, const int y,
+__device__ inline
+unsigned int pos( const int x, const int y,
 		const int n ) 
 {
 	return ( y * n + x );
@@ -44,7 +45,7 @@ void lb::read( const char *parameters, const char *obstacles )
 		obs >> i;
 		obs >> j;
 		// TODO: problema aqui com indices e entrada
-		obst[pos(i-1,j-1)] = true;
+		obst[pos(i,j)] = true;
 		//obst[pos(i,j)] = true;
 		c++;
 	}
@@ -57,11 +58,6 @@ void lb::resize( const int n )
 	f0.resize( n ); f1.resize( n ); f2.resize( n ); f3.resize( n );
        	f4.resize( n ); f5.resize( n ); f6.resize( n ); f7.resize( n );
        	f8.resize( n );
-	/*
-	d_f0.resize( n ); d_f1.resize( n ); d_f2.resize( n ); d_f3.resize( n );
-       	d_f4.resize( n ); d_f5.resize( n ); d_f6.resize( n ); d_f7.resize( n );
-       	d_f8.resize( n );
-	*/
 	d_tf0.resize( n ); d_tf1.resize( n ); d_tf2.resize( n ); d_tf3.resize( n );
        	d_tf4.resize( n ); d_tf5.resize( n ); d_tf6.resize( n ); d_tf7.resize( n );
        	d_tf8.resize( n );
@@ -474,7 +470,7 @@ void lb::relaxation( void )
 void lb::write_results( const char *file ) 
 {
 	//local variables
-	int x, y, i;
+	int x, y;
 	bool obsval;
 	float u_x, u_y, d_loc, press;
 

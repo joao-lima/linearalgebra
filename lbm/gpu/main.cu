@@ -9,7 +9,7 @@ int main( int argc, char **argv )
 {
 	lb lbm;
 	double tdelta;
-	float vel;
+	//float vel;
 	struct timeval t1, t2;
 
 	lbm.read( argv[1], argv[2] );

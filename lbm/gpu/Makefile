@@ -1,9 +1,11 @@
 
 CC := nvcc
-CFLAGS :=
+CFLAGS := 
 PROGS := lb
+LDFLAGS :=
 
+all: $(PROGS)
 lb: lb.cu main.cu
-	nvcc  --compiler-options -fpermissive -o $@ $^ # sem o fpermissive nao funciona no gcc4.4
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 clean:
 	rm -f $(PROGS) *.o
