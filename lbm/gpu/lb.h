@@ -28,7 +28,7 @@ public:
 	}
 	void read( const char *parameters, const char *obstacles );
 	void init( void );
-	float velocity( int time );
+	double velocity( int time );
 	void redistribute( void );
 	void propagate( void );
 	void bounceback( void );
@@ -38,19 +38,19 @@ public:
 private:
 	// Lattice
 	int max_iter; // maximum number of iterations
-	float density;
-	float accel;
-	float omega;
-	float r_rey;
+	double density;
+	double accel;
+	double omega;
+	double r_rey;
 
 	//lattice structures
 	int nx, ny, ndim;
 	
-	thrust::host_vector<float> f0, f1, f2, f3, f4, f5, f6, f7, f8;
-	thrust::device_vector<float> d_f0, d_f1, d_f2, d_f3, d_f4, d_f5,
+	thrust::host_vector<double> f0, f1, f2, f3, f4, f5, f6, f7, f8;
+	thrust::device_vector<double> d_f0, d_f1, d_f2, d_f3, d_f4, d_f5,
 	       	d_f6, d_f7, d_f8;
 	// We dont need temp data in host as it remains in GPU memory
-	thrust::device_vector<float> d_tf0, d_tf1, d_tf2, d_tf3, d_tf4,
+	thrust::device_vector<double> d_tf0, d_tf1, d_tf2, d_tf3, d_tf4,
 	       	d_tf5, d_tf6, d_tf7, d_tf8;
 	thrust::host_vector<bool> obst;
 	thrust::device_vector<bool> d_obst;

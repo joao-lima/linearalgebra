@@ -38,8 +38,6 @@ void lb::read( const char *parameters, const char *obstacles )
 	obs >> ndim;
 	obs >> max;
 
-	//std::cout << "nx=" << nx << " ny=" << ny << " ndim=" << ndim 
-	//	<< " omega=" << omega << std::endl;
 	resize( nx * ny );
 	while( c < max ){
 		obs >> i;
@@ -68,9 +66,9 @@ void lb::resize( const int n )
 void lb::init( )
 {
 	int x, y;
-	float t_0 = density * 4.0 / 9.0;
-	float t_1 = density / 9.0;
-	float t_2 = density / 36.0;
+	double t_0 = density * 4.0 / 9.0;
+	double t_1 = density / 9.0;
+	double t_2 = density / 36.0;
 
 	//loop over computational domain
 	for (x = 0; x < nx; x++) {
@@ -98,10 +96,10 @@ void lb::init( )
 /* essa função pode ter uma implementação CUDA/thrust 
    eu vi uma função chamada transform_reduce, quem sabe ...
 */
-float lb::velocity( int time ) 
+double lb::velocity( int time ) 
 {
 	int x, y, n_free;
-	float u_x, d_loc;
+	double u_x, d_loc;
 
 	x = nx/2;
 	n_free = 0;
@@ -140,47 +138,34 @@ float lb::velocity( int time )
 	REDISTRIBUTE kernel
 	Authors: Catia
 */
-__global__ void redistribute_kernel( float * f1, float * f3, float * f5, 
-	float * f6,float * f7,float * f8, bool* obst, float accel,
-       	float density, int nx, int ny ) {
-    //nx e ny sao as dimensoes
-    //local variables
-    float t_1 = density * accel / 9.0;
-    float t_2 = density * accel / 36.0;
+__global__ void redistribute_kernel( double * f1, double * f3, double * f5, 
+	double * f6,double * f7,double * f8, bool* obst, double accel,
+       	double density, int nx, int ny ) {
+    double t_1 = density * accel / 9.0;
+    double t_2 = density * accel / 36.0;
 
     int row = blockIdx.x * blockDim.x + threadIdx.x; 
     if (row >= ny) return;
-    //for (y = 0; y < l->ly; y++) {
-    //check to avoid negative densities
-    //check false | true
     if ( (obst[row * nx] == false) && ((f3[row * nx] - t_1) > 0) && 
                  ((f6[row * nx] - t_2) > 0) && (f7[row * nx] - t_2 > 0)) {
       //increase east
       f1[row * nx] += t_1;
-      //l->node[0][y][1] += t_1;
       //decrease west
       f3[row * nx] -= t_1;
-      //l->node[0][y][3] -= t_1;
       //increase north-east
       f5[row * nx] += t_2;
-      //l->node[0][y][5] += t_2;
       //decrease north-west
       f6[row * nx] -= t_2;
-      //l->node[0][y][6] -= t_2;
       //decrease south-west
       f7[row * nx] -= t_2;
-      //l->node[0][y][7] -= t_2;
       //increase south-east
       f8[row * nx] += t_2;
-      //l->node[0][y][8] += t_2;
     }
-  //}
 }
 
 void lb::redistribute( void )
 {
 	/* here a kernel call */
-	// tem de chamar esse kernel com uma dimensao apenas
 	dim3 threads( BLOCK_SIZE, 1 );
 	dim3 grid( (ny+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
 	redistribute_kernel<<< grid, threads >>>(
@@ -199,21 +184,18 @@ void lb::redistribute( void )
 	Authors: Joao
 */
 __global__ void propagate_kernel( 
-	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
-	float *f6, float *f7, float *f8,
-	float *tf0, float *tf1, float *tf2, float *tf3, float *tf4, 
-	float *tf5, float *tf6, float *tf7, float *tf8,
+	double *f0, double *f1, double *f2, double *f3, double *f4, double *f5,
+	double *f6, double *f7, double *f8,
+	double *tf0, double *tf1, double *tf2, double *tf3, double *tf4, 
+	double *tf5, double *tf6, double *tf7, double *tf8,
 	int nx, int ny )
 {
         //local variables
-	//int x, y;
 	int x_e = 0, x_w = 0, y_n = 0, y_s = 0;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
 	if( (y >= ny) || (x >= nx) ) return;
-	//for (x = 0; x < l->lx; x++) {
-	//	for(y = 0; y < l->ly; y++) {
 	//compute upper and right next neighbour nodes
 	x_e = (x + 1)%nx;
 	y_n = (y + 1)%ny;
@@ -224,34 +206,23 @@ __global__ void propagate_kernel(
 	
 	//density propagation
 	//zero
-	//l->temp[x][y][0] = l->node[x][y][0];
 	tf0[pos(x,y,nx)] = f0[pos(x,y,nx)];
 	//east
-	//l->temp[x_e][y][1] = l->node[x][y][1];
 	tf1[pos(x_e,y,nx)] = f1[pos(x,y,nx)];
 	//north
-	//l->temp[x][y_n][2] = l->node[x][y][2];
 	tf2[pos(x,y_n,nx)] = f2[pos(x,y,nx)];
 	//west
-	//l->temp[x_w][y][3] = l->node[x][y][3];
 	tf3[pos(x_w,y,nx)] = f3[pos(x,y,nx)];
 	//south
-	//l->temp[x][y_s][4] = l->node[x][y][4];
 	tf4[pos(x,y_s,nx)] = f4[pos(x,y,nx)];
 	//north-east
-	//l->temp[x_e][y_n][5] = l->node[x][y][5];
 	tf5[pos(x_e,y_n,nx)] = f5[pos(x,y,nx)];
 	//north-west
-	//l->temp[x_w][y_n][6] = l->node[x][y][6];
 	tf6[pos(x_w,y_n,nx)] = f6[pos(x,y,nx)];
 	//south-west
-	//l->temp[x_w][y_s][7] = l->node[x][y][7];
 	tf7[pos(x_w,y_s,nx)] = f7[pos(x,y,nx)];
 	//south-east
-	//l->temp[x_e][y_s][8] = l->node[x][y][8];
 	tf8[pos(x_e,y_s,nx)] = f8[pos(x,y,nx)];
-//		}
-//	}
 }
 
 void lb::propagate( void )
@@ -287,36 +258,33 @@ void lb::propagate( void )
 	BOUNCEBACK kernel
 	Authors: Antonio
 */
-__global__ void bounceback_kernel( float * f1, float * f2, float * f3,
-		float * f4, float * f5, float * f6, float * f7, float * f8,
-		float * tf1, float * tf2, float * tf3, float * tf4, 
-		float * tf5, float * tf6, float * tf7, float * tf8,
+__global__ void bounceback_kernel( double * f1, double * f2, double * f3,
+		double * f4, double * f5, double * f6, double * f7, double * f8,
+		double * tf1, double * tf2, double * tf3, double * tf4, 
+		double * tf5, double * tf6, double * tf7, double * tf8,
 		bool* obst, int nx, int ny) {
   //local variables
-  //TODO ver o acesso a memoria. nao fica totalmente desalinhado usando 8 vetores nao?
-  //-- indexes
   int row = blockIdx.y * blockDim.y + threadIdx.y; 
   int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
       if ( (row >= ny) || (col >= nx) ) return;
-
       if ( obst[row * nx + col] ){
-        //east
-        f1[row * nx + col] = tf3[row * nx + col];
-        //north
-        f2[row * nx + col] = tf4[row * nx + col];
-        //west
-        f3[row * nx + col] = tf1[row * nx + col];
-        //south
-        f4[row * nx + col] = tf2[row * nx + col];
-        //north-east
-        f5[row * nx + col] = tf7[row * nx + col];
-        //north-west
-        f6[row * nx + col] = tf8[row * nx + col];
-        //south-west
-        f7[row * nx + col] = tf5[row * nx + col];
-        //south-east
-        f8[row * nx + col] = tf6[row * nx + col];
+		//east
+		f1[row * nx + col] = tf3[row * nx + col];
+		//north
+		f2[row * nx + col] = tf4[row * nx + col];
+		//west
+		f3[row * nx + col] = tf1[row * nx + col];
+		//south
+		f4[row * nx + col] = tf2[row * nx + col];
+		//north-east
+		f5[row * nx + col] = tf7[row * nx + col];
+		//north-west
+		f6[row * nx + col] = tf8[row * nx + col];
+		//south-west
+		f7[row * nx + col] = tf5[row * nx + col];
+		//south-east
+		f8[row * nx + col] = tf6[row * nx + col];
       }
 }
 
@@ -353,19 +321,19 @@ void lb::bounceback( void )
 	Authors: Antonio, Catia e Joao
 */
 __global__ void relaxation_kernel( 
-	float *f0, float *f1, float *f2, float *f3, float *f4, float *f5,
-	float *f6, float *f7, float *f8,
-	float *tf0, float *tf1, float *tf2, float *tf3, float *tf4, 
-	float *tf5, float *tf6, float *tf7, float *tf8, bool* obst,
-	int nx, int ny, float omega )
+	double *f0, double *f1, double *f2, double *f3, double *f4, double *f5,
+	double *f6, double *f7, double *f8,
+	double *tf0, double *tf1, double *tf2, double *tf3, double *tf4, 
+	double *tf5, double *tf6, double *tf7, double *tf8, bool* obst,
+	int nx, int ny, double omega )
 {
 	//local variables
-	float c_squ = 1.0 / 3.0;
-	float t_0 = 4.0 / 9.0;
-	float t_1 = 1.0 / 9.0;
-	float t_2 = 1.0 / 36.0;
-	float u_x, u_y;
-	float u_n[9], n_equ[9], u_squ, d_loc;
+	double c_squ = 1.0 / 3.0;
+	double t_0 = 4.0 / 9.0;
+	double t_1 = 1.0 / 9.0;
+	double t_2 = 1.0 / 36.0;
+	double u_x, u_y;
+	double u_n[9], n_equ[9], u_squ, d_loc;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
@@ -385,12 +353,9 @@ __global__ void relaxation_kernel(
 		u_x = (tf1[pos(x,y,nx)] + tf5[pos(x,y,nx)] + tf8[pos(x,y,nx)] -
 				(tf3[pos(x,y,nx)] + tf6[pos(x,y,nx)] +
 				 tf7[pos(x,y,nx)])) / d_loc;
-		//u_x = (l->temp[x][y][1] + l->temp[x][y][5] + l->temp[x][y][8] - (l->temp[x][y][3] + l->temp[x][y][6] + l->temp[x][y][7])) / d_loc;
-
 		u_y = (tf2[pos(x,y,nx)] + tf5[pos(x,y,nx)] + tf6[pos(x,y,nx)] -
 				(tf4[pos(x,y,nx)] + tf7[pos(x,y,nx)] +
 				 tf8[pos(x,y,nx)])) / d_loc;
-		//u_y = (l->temp[x][y][2] + l->temp[x][y][5] + l->temp[x][y][6] - (l->temp[x][y][4] + l->temp[x][y][7] + l->temp[x][y][8])) / d_loc;
 
 		//square velocity
 		u_squ = u_x * u_x + u_y * u_y;
@@ -431,9 +396,6 @@ __global__ void relaxation_kernel(
 		f6[pos(x,y,nx)] = tf6[pos(x,y,nx)] + omega * (n_equ[6] - tf6[pos(x,y,nx)]);
 		f7[pos(x,y,nx)] = tf7[pos(x,y,nx)] + omega * (n_equ[7] - tf7[pos(x,y,nx)]);
 		f8[pos(x,y,nx)] = tf8[pos(x,y,nx)] + omega * (n_equ[8] - tf8[pos(x,y,nx)]);
-		//for (i = 0; i < l->n; i++) {
-		//	l->node[x][y][i] = l->temp[x][y][i] + omega * (n_equ[i] - l->temp[x][y][i]);
-		//}	
 	}
 }
 
@@ -472,10 +434,10 @@ void lb::write_results( const char *file )
 	//local variables
 	int x, y;
 	bool obsval;
-	float u_x, u_y, d_loc, press;
+	double u_x, u_y, d_loc, press;
 
 	//Square speed of sound
-	float c_squ = 1.0 / 3.0;
+	double c_squ = 1.0 / 3.0;
 
 	//Open results output file
 	FILE *archive = fopen(file, "w");
@@ -507,10 +469,6 @@ void lb::write_results( const char *file )
 			} else {
 				//integral local density
 				//initialize variable d_loc
-				//d_loc = 0.0;
-				//for (i = 0; i < 9; i++) {
-				//	d_loc += l->node[x][y][i];
-				//}
 				d_loc = f0[pos(x,y)];
 				d_loc += f1[pos(x,y)];
 				d_loc += f2[pos(x,y)];
@@ -522,10 +480,8 @@ void lb::write_results( const char *file )
 				d_loc += f8[pos(x,y)];
 				// x-, and y- velocity components
 				u_x = (f1[pos(x,y)] + f5[pos(x,y)] + f8[pos(x,y)] - (f3[pos(x,y)] + f6[pos(x,y)] + f7[pos(x,y)])) / d_loc;
-				//u_x = (l->node[x][y][1] + l->node[x][y][5] + l->node[x][y][8] - (l->node[x][y][3] + l->node[x][y][6] + l->node[x][y][7])) / d_loc;
 				u_y = (f2[pos(x,y)] + f5[pos(x,y)] + f6[pos(x,y)] - (f4[pos(x,y)] + f7[pos(x,y)] + f8[pos(x,y)])) / d_loc;
 
-				//u_y = (l->node[x][y][2] + l->node[x][y][5] + l->node[x][y][6] - (l->node[x][y][4] + l->node[x][y][7] + l->node[x][y][8])) / d_loc;
 				
 				//pressure
 				press = d_loc * c_squ;
