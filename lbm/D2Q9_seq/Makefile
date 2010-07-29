@@ -1,6 +1,6 @@
 
 CC := gcc
-CFLAGS := -Wall -O2
+CFLAGS := -Wall -O2 -D_DEBUG
 PROGS := lb
 
 all: $(PROGS)

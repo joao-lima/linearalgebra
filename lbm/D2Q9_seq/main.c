@@ -1,5 +1,6 @@
 
 #include "lb.h"
+#include <time.h>
 
 ///////////////////////////////////////////////
 int main(int argc, char **argv) 
@@ -53,6 +54,11 @@ int main(int argc, char **argv)
 
 	execution_time = crono();
         struct timeval t1, t2;
+#ifdef _DEBUG
+	double c1, c2;
+	double t_relaxation= 0.0, t_redistribute= 0.0,
+	       t_propagate= 0.0, t_bounceback= 0.0;
+#endif
 
 	//Begin of the main loop
         gettimeofday( &t1, 0 );
@@ -63,10 +69,41 @@ int main(int argc, char **argv)
 		}
 		*/
 		
-		redistribute(lattice, properties->accel, properties->density);
+#ifdef _DEBUG
+		c1= clock();
+#endif
+		redistribute( lattice, properties->accel, properties->density );
+#ifdef _DEBUG
+		c2= clock();
+		t_redistribute += (c2 - c1);
+#endif
+
+#ifdef _DEBUG
+		c1= clock();
+#endif
 		propagate(lattice);
+#ifdef _DEBUG
+		c2= clock();
+		t_propagate += (c2 - c1);
+#endif
+
+#ifdef _DEBUG
+		c1= clock();
+#endif
 		bounceback(lattice);
+#ifdef _DEBUG
+		c2= clock();
+		t_bounceback += (c2 - c1);
+#endif
+
+#ifdef _DEBUG
+		c1= clock();
+#endif
 		relaxation(lattice, properties->density, properties->omega);
+#ifdef _DEBUG
+		c2= clock();
+		t_relaxation += (c2 - c1);
+#endif
 		/*
 		vel = calc_velocity(lattice, time);
 		printf("%d %f\n", time, vel);
@@ -74,6 +111,15 @@ int main(int argc, char **argv)
 	}
         gettimeofday( &t2, 0 );
         tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
+#ifdef _DEBUG
+	fprintf( stdout, "redistribute %.6f\n", t_redistribute/CLOCKS_PER_SEC );
+	fprintf( stdout, "propagate %.6f\n", t_propagate/CLOCKS_PER_SEC );
+	fprintf( stdout, "bounceback %.6f\n", t_bounceback/CLOCKS_PER_SEC );
+	fprintf( stdout, "relaxation %.6f\n", t_relaxation/CLOCKS_PER_SEC );
+	fprintf( stdout, "total %.6f\n", t_redistribute/CLOCKS_PER_SEC +
+		t_propagate/CLOCKS_PER_SEC + t_bounceback/CLOCKS_PER_SEC +
+		t_relaxation/CLOCKS_PER_SEC );
+#endif
       
 	//execution_time = crono() - execution_time;
 	comp_rey(lattice, properties, time, execution_time);
