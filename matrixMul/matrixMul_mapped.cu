@@ -48,25 +48,40 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
+	float *h_A, *h_B, *h_C;
 
 	if( argc > 1 )
 		N = atoi( argv[1] );
 	else
 		N = 1024;
 
-	cudaSetDevice( 0 );
+	/* CUDA device flags: cudaDeviceScheduleAuto, cudaDeviceScheduleSpin,
+	   cudaDeviceScheduleYield, cudaDeviceBlockingSync, cudaDeviceMapHost
+	   */
+	unsigned int flags= cudaDeviceMapHost;
+	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
+	cudaSetDevice( 1 );
+
 	// set seed for rand()
 	srand(2006);
-
+	/* CUDA flags:
+	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
+	cudaHostAllocWriteCombined */
+	flags= cudaHostAllocMapped;
 	// allocate host memory for matrices A and B
 	unsigned int size_A = WA * HA;
 	unsigned int mem_size_A = sizeof(float) * size_A;
-	float* h_A = (float*) malloc(mem_size_A);
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_A, mem_size_A, flags ) );
 	unsigned int size_B = WB * HB;
 	unsigned int mem_size_B = sizeof(float) * size_B;
-	float* h_B = (float*) malloc(mem_size_B);
-	cudaEvent_t e1, e2;
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_B, mem_size_B, flags ) );
+	// allocate device memory for result
+	unsigned int size_C = WC * HC;
+	unsigned int mem_size_C = sizeof(float) * size_C;
+	// allocate host memory for the result
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_C, mem_size_C, flags ) );
 
+	cudaEvent_t e1, e2;
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
 	// initialize host memory
@@ -75,16 +90,11 @@ main(int argc, char** argv)
 
 	// allocate device memory
 	float* d_A;
-	CUDA_SAFE_CALL(cudaMalloc((void**) &d_A, mem_size_A));
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_A, h_A, 0) );
 	float* d_B;
-	CUDA_SAFE_CALL(cudaMalloc((void**) &d_B, mem_size_B));
-	// allocate device memory for result
-	unsigned int size_C = WC * HC;
-	unsigned int mem_size_C = sizeof(float) * size_C;
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_B, h_B, 0) );
 	float* d_C;
-	CUDA_SAFE_CALL(cudaMalloc((void**) &d_C, mem_size_C));
-	// allocate host memory for the result
-	float* h_C = (float*) malloc(mem_size_C);
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_C, h_C, 0) );
 	// setup execution parameters
 	dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 grid(WC / threads.x, HC / threads.y);
@@ -92,17 +102,17 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL(cudaEventRecord( e1, 0 ));
 	for( i= 0; i < max_iter; i++ ){
 		// copy host memory to device
-		CUDA_SAFE_CALL(cudaMemcpy(d_A, h_A, mem_size_A,
-				      cudaMemcpyHostToDevice) );
-		CUDA_SAFE_CALL(cudaMemcpy(d_B, h_B, mem_size_B,
-				      cudaMemcpyHostToDevice) );
+		//CUDA_SAFE_CALL(cudaMemcpy(d_A, h_A, mem_size_A,
+		//		      cudaMemcpyHostToDevice) );
+		//CUDA_SAFE_CALL(cudaMemcpy(d_B, h_B, mem_size_B,
+		//		      cudaMemcpyHostToDevice) );
 		// execute the kernel
 		matrixMul<<< grid, threads >>>(d_C, d_A, d_B, WA, WB);
 		// check if kernel execution generated and error
 		cutilCheckMsg("Kernel execution failed");
 		// copy result from device to host
-		CUDA_SAFE_CALL(cudaMemcpy(h_C, d_C, mem_size_C,
-				      cudaMemcpyDeviceToHost) );
+		//CUDA_SAFE_CALL(cudaMemcpy(h_C, d_C, mem_size_C,
+		//		      cudaMemcpyDeviceToHost) );
 	}
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
 	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));
@@ -111,7 +121,6 @@ main(int argc, char** argv)
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "size= %d time(s)= %.3f bandwidth(MB/s)= %.1f\n",
 		N, elapsed_time_in_Ms/(1e3f*max_iter), bandwidth_in_MBs );
-
 
 	if( argc > 2 ){
 		// compute reference solution
@@ -126,14 +135,11 @@ main(int argc, char** argv)
 	}
 
 	// clean up memory
-	free(h_A);
-	free(h_B);
-	free(h_C);
 	CUDA_SAFE_CALL( cudaEventDestroy(e1) );
 	CUDA_SAFE_CALL( cudaEventDestroy(e2) );
-	CUDA_SAFE_CALL(cudaFree(d_A));
-	CUDA_SAFE_CALL(cudaFree(d_B));
-	CUDA_SAFE_CALL(cudaFree(d_C));
+	CUDA_SAFE_CALL( cudaFreeHost( h_A ) );
+	CUDA_SAFE_CALL( cudaFreeHost( h_B ) );
+	CUDA_SAFE_CALL( cudaFreeHost( h_C ) );
 
 	cudaThreadExit();
 }

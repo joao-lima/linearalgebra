@@ -47,7 +47,7 @@ main(int argc, char** argv)
 	unsigned int N= 0;
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
-	int i, max_iter= 1;
+	int i, max_iter= 10;
 	float *h_A, *h_B, *h_C;
 
 	if( argc > 1 )
@@ -112,7 +112,7 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
 	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));
 	CUDA_SAFE_CALL(cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ));
-	bandwidth_in_MBs= 2.0f * (1e3f*N*N*sizeof(float)*max_iter) / 
+	bandwidth_in_MBs= 1e3f * max_iter * (3.0f*N*N*sizeof(float)) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "size= %d time(s)= %.3f bandwidth(MB/s)= %.1f\n",
 		N, elapsed_time_in_Ms/(1e3f*max_iter), bandwidth_in_MBs );
@@ -130,6 +130,8 @@ main(int argc, char** argv)
 	}
 
 	// clean up memory
+	CUDA_SAFE_CALL( cudaEventDestroy(e1) );
+	CUDA_SAFE_CALL( cudaEventDestroy(e2) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_A ) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_B ) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_C ) );
