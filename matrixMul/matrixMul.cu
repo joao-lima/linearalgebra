@@ -89,7 +89,7 @@ main(int argc, char** argv)
 	dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 grid(WC / threads.x, HC / threads.y);
 
-	cudaEventRecord( e1, 0 );
+	CUDA_SAFE_CALL(cudaEventRecord( e1, 0 ));
 	for( i= 0; i < max_iter; i++ ){
 		// copy host memory to device
 		CUDA_SAFE_CALL(cudaMemcpy(d_A, h_A, mem_size_A,
@@ -104,8 +104,9 @@ main(int argc, char** argv)
 		CUDA_SAFE_CALL(cudaMemcpy(h_C, d_C, mem_size_C,
 				      cudaMemcpyDeviceToHost) );
 	}
-	cudaEventRecord( e2, 0 );
-	cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 );
+	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
+	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));
+	CUDA_SAFE_CALL(cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ));
 	bandwidth_in_MBs= 2.0f * (1e3f*N*N* sizeof(float) * max_iter) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "size= %d time(s)= %.3f bandwidth(MB/s)= %.1f\n",
