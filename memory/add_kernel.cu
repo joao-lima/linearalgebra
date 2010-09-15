@@ -4,13 +4,13 @@
 // Thread block size
 #define BLOCK_SIZE 64
 
-__global__ void add_one( char *out, const char *in )
+__global__ void add_one( char *data )
 {
   int index = blockIdx.x*blockDim.x + threadIdx.x;
   char res;
-  char x= in[index];
+  char x= data[index];
   res = x + 1;
-  out[index] = res;
+  data[index] = res;
 }
 
 #endif // #ifndef _ADD_KERNEL_H_

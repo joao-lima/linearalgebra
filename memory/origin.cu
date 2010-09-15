@@ -29,19 +29,17 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
-	char *h_in, *h_out, *d_in, *d_out;
+	char *h_data, *d_data;
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
 
 	cudaSetDevice( 1 );
 	// allocate host memory for matrices A and B
-	h_in= (char*)malloc( mem_size );
-	h_out= (char*)malloc( mem_size );
-	memset( h_in, 1, mem_size );
+	h_data= (char*)malloc( mem_size );
+	memset( h_data, 1, mem_size );
 	// allocate device memory
-	CUDA_SAFE_CALL( cudaMalloc((void**)&d_in, mem_size) );
-	CUDA_SAFE_CALL( cudaMalloc((void**)&d_out, mem_size) );
+	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data, mem_size) );
 	cudaEvent_t e1, e2;
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
@@ -51,10 +49,10 @@ main(int argc, char** argv)
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
-		CUDA_SAFE_CALL( cudaMemcpy( d_in, h_in, mem_size,
+		CUDA_SAFE_CALL( cudaMemcpy( d_data, h_data, mem_size,
 				      cudaMemcpyHostToDevice) );
-		add_one<<< grid, threads >>>( d_out, (const char*)d_in );
-		CUDA_SAFE_CALL( cudaMemcpy( h_out, d_out, mem_size,
+		add_one<<< grid, threads >>>( d_data );
+		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
 				      cudaMemcpyDeviceToHost) );
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
@@ -62,17 +60,15 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "origin size= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
+	fprintf( stdout, "origin size(MB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
 		mem_size/(1<<20), elapsed_time_in_Ms/(1e3f*max_iter),
 	       	bandwidth_in_MBs );
 
 	// clean up memory
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
-	free( h_in );
-	free( h_out );
-	CUDA_SAFE_CALL( cudaFree( d_in ) );
-	CUDA_SAFE_CALL( cudaFree( d_out ) );
+	free( h_data );
+	CUDA_SAFE_CALL( cudaFree( d_data ) );
 
 	cudaThreadExit();
 }

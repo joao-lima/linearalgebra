@@ -29,7 +29,7 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
-	char *h_in, *h_out, *d_in, *d_out;
+	char *h_data, *d_data;
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
@@ -46,12 +46,10 @@ main(int argc, char** argv)
 	cudaHostAllocWriteCombined */
 	flags= cudaHostAllocMapped;
 	// allocate host memory for matrices A and B
-	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_in, mem_size, flags ) );
-	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_out, mem_size, flags ) );
-	memset( h_in, 1, mem_size );
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, mem_size, flags ) );
+	memset( h_data, 1, mem_size );
 	// allocate device memory
-	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_in, h_in, 0) );
-	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_out, h_out, 0) );
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_data, h_data, 0) );
 	cudaEvent_t e1, e2;
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
@@ -61,7 +59,7 @@ main(int argc, char** argv)
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
-		add_one<<< grid, threads >>>( d_out, (const char*)d_in );
+		add_one<<< grid, threads >>>( d_data );
 		cutilCheckMsg("Kernel execution failed");
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
@@ -69,15 +67,14 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "mapped size= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
+	fprintf( stdout, "mapped size(MB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
 		mem_size/(1 << 20), elapsed_time_in_Ms/(1e3f*max_iter),
 	       	bandwidth_in_MBs );
 
 	// clean up memory
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
-	CUDA_SAFE_CALL( cudaFreeHost( h_in ) );
-	CUDA_SAFE_CALL( cudaFreeHost( h_out ) );
+	CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
 
 	cudaThreadExit();
 }
