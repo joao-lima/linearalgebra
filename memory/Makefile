@@ -1,6 +1,6 @@
 CXX := nvcc
 CC := nvcc
-CXXFLAGS := -O2 -D_REENTRANT  \
+CXXFLAGS := -O2 -D_REENTRANT -g \
 	-I$(HOME)/NVIDIA_GPU_Computing_SDK/C/common/inc
 LDFLAGS := $(HOME)/NVIDIA_GPU_Computing_SDK/C/lib/libcutil.a
 PROGS := origin pinned mapped pinned_wc mapped_wc

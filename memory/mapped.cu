@@ -29,17 +29,18 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
-	char *h_data, *d_data;
+	float *h_data, *d_data;
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
 
-	cudaSetDevice( 1 );
+	unsigned int nelem= mem_size/sizeof(float);
 	/* CUDA device flags: cudaDeviceScheduleAuto, cudaDeviceScheduleSpin,
 	   cudaDeviceScheduleYield, cudaDeviceBlockingSync, cudaDeviceMapHost
 	   */
 	unsigned int flags= cudaDeviceMapHost;
 	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
+	CUDA_SAFE_CALL( cudaSetDevice( 1 ) );
 
 	/* CUDA flags:
 	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
@@ -47,7 +48,7 @@ main(int argc, char** argv)
 	flags= cudaHostAllocMapped;
 	// allocate host memory for matrices A and B
 	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, mem_size, flags ) );
-	memset( h_data, 1, mem_size );
+	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
 	// allocate device memory
 	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_data, h_data, 0) );
 	cudaEvent_t e1, e2;
@@ -55,7 +56,7 @@ main(int argc, char** argv)
 	cudaEventCreate( &e2 );
 	// setup execution parameters
 	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( mem_size / threads.x, 1 );
+	dim3 grid( nelem / threads.x, 1 );
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
@@ -70,6 +71,11 @@ main(int argc, char** argv)
 	fprintf( stdout, "mapped size(MB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
 		mem_size/(1 << 20), elapsed_time_in_Ms/(1e3f*max_iter),
 	       	bandwidth_in_MBs );
+
+	if( check( h_data, 11e0f, nelem) == 1 )
+		fprintf( stdout, "test OK\n" );
+	else
+		fprintf( stdout, "test FAILED\n" );
 
 	// clean up memory
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );

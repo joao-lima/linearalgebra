@@ -2,15 +2,26 @@
 #define _ADD_KERNEL_H_
 
 // Thread block size
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 512
 
-__global__ void add_one( char *data )
+__global__ void add_one( float *data )
 {
   int index = blockIdx.x*blockDim.x + threadIdx.x;
-  char res;
-  char x= data[index];
+  float res;
+  float x= data[index];
   res = x + 1;
   data[index] = res;
+}
+
+
+__host__ int check( const float *data, const float v, const unsigned int n )
+{
+	int i;
+
+	for( i= 0; i < n; i++ )
+		if( data[i] != v )
+			return 0;
+	return 1;
 }
 
 #endif // #ifndef _ADD_KERNEL_H_
