@@ -3,7 +3,7 @@ CC := nvcc
 CXXFLAGS := -O2 -D_REENTRANT -g \
 	-I$(HOME)/NVIDIA_GPU_Computing_SDK/C/common/inc
 LDFLAGS := $(HOME)/NVIDIA_GPU_Computing_SDK/C/lib/libcutil.a
-PROGS := origin pinned mapped pinned_wc mapped_wc
+PROGS := origin pinned mapped pinned_wc mapped_wc signal_gputocpu
 
 all: $(PROGS)
 
@@ -20,6 +20,9 @@ mapped: mapped.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 mapped_wc: mapped_wc.cu
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
+
+signal_gputocpu: signal_gputocpu.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 clean:
