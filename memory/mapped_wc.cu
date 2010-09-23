@@ -25,7 +25,7 @@
 int
 main(int argc, char** argv)
 {
-	unsigned int mem_size= (1 << 26);
+	unsigned int mem_size= (1 << 25);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
@@ -72,9 +72,7 @@ main(int argc, char** argv)
 		mem_size/(1 << 20), elapsed_time_in_Ms/(1e3f*max_iter),
 	       	bandwidth_in_MBs );
 
-	if( check( h_data, 11e0f, nelem) == 1 )
-		fprintf( stdout, "test OK\n" );
-	else
+	if( check( h_data, 11e0f, nelem) == 0 )
 		fprintf( stdout, "test FAILED\n" );
 
 	// clean up memory
