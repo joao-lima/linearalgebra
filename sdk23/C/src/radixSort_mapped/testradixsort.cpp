@@ -58,7 +58,7 @@ bool verifySortUint(unsigned int *keysSorted,
 	    break;
 	}
     }
-
+#if 0
     if (valuesSorted)
     {
         for(unsigned int i=0; i<len; ++i)
@@ -72,7 +72,7 @@ bool verifySortUint(unsigned int *keysSorted,
             }
         }
     }
-
+#endif
     return passed;
 }
 
@@ -161,11 +161,8 @@ void testSort(int argc, char **argv)
     {
         keybits = cmdVal;
     }
-#ifdef __DEVICE_EMULATION__
-    unsigned int numIterations = 1;
-#else
+    //unsigned int numIterations = 1;
     unsigned int numIterations = (numElements >= 16777216) ? 10 : 100;
-#endif
 
     if ( cutGetCmdLineArgumenti(argc, (const char**) argv, "iterations", &cmdVal) )
     {
@@ -190,7 +187,7 @@ void testSort(int argc, char **argv)
     if (!quiet)
         printf("\nSorting %d %d-bit %s keys %s\n\n", numElements, keybits, floatKeys ? "float" : "unsigned int", keysOnly ? "(only)" : "and values");
 
-    int deviceID = -1;
+    int deviceID = 0;
     if (cudaSuccess == cudaGetDevice(&deviceID))
     {
         cudaDeviceProp devprop;
@@ -204,21 +201,24 @@ void testSort(int argc, char **argv)
         }
     }
 
-    T *h_keys       = (T*)malloc(numElements*sizeof(T));
-    T *h_keysSorted = (T*)malloc(numElements*sizeof(T));
+    unsigned int flags= cudaHostAllocMapped;
+    T *h_keys      ;
+    T *h_keysSorted;
+    CUDA_SAFE_CALL( cudaHostAlloc((void**)&h_keys, numElements*sizeof(T),
+			    flags) );
+    CUDA_SAFE_CALL( cudaHostAlloc((void**)&h_keysSorted, numElements*sizeof(T),
+			    flags) );
     unsigned int *h_values     = 0;
-    if (!keysOnly)
-        h_values = (unsigned int *)malloc(numElements*sizeof(unsigned int));
+    if (!keysOnly){
+    CUDA_SAFE_CALL( cudaHostAlloc((void**)&h_values,
+			    numElements*sizeof(unsigned int), flags) );
+    }
 
     // Fill up with some random data
     if (floatKeys)
-    {
         makeRandomFloatVector((float*)h_keys, numElements);
-    }
     else
-    {
         makeRandomUintVector((unsigned int*)h_keys, numElements, keybits);
-    }
     
     if (!keysOnly)
     {
@@ -231,18 +231,19 @@ void testSort(int argc, char **argv)
     // Copy data onto the GPU
     T *d_keys;
     unsigned int *d_values;
-    cudaMalloc((void **)&d_keys, numElements*sizeof(T));
-    if (!keysOnly)
-        cudaMalloc((void **)&d_values, numElements*sizeof(unsigned int));
-    else
+    CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**)&d_keys, h_keys, 0) );
+    if (!keysOnly){
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**)&d_values,
+			       	h_values, 0) );
+    }else
         d_values = 0;
 
     // Creat the RadixSort object
     RadixSort radixsort(numElements, keysOnly);
 
-    cudaMemcpy(d_keys, h_keys, numElements * sizeof(T), cudaMemcpyHostToDevice);
-    if (!keysOnly)
-        cudaMemcpy(d_values, h_values, numElements * sizeof(unsigned int), cudaMemcpyHostToDevice);
+    //cudaMemcpy(d_keys, h_keys, numElements * sizeof(T), cudaMemcpyHostToDevice);
+    //if (!keysOnly)
+    //    cudaMemcpy(d_values, h_values, numElements * sizeof(unsigned int), cudaMemcpyHostToDevice);
 
     // run multiple iterations to compute an average sort time
     cudaEvent_t start_event, stop_event;
@@ -252,12 +253,15 @@ void testSort(int argc, char **argv)
     float totalTime = 0;
     for(unsigned int i = 0; i < numIterations; i++) 
     {
-	    cutilSafeCall( cudaEventRecord(start_event, 0) );
         // reset data before sort
-        cudaMemcpy(d_keys, h_keys, numElements * sizeof(T), cudaMemcpyHostToDevice);
-	    if (!keysOnly)
-	        cudaMemcpy(d_values, h_values, numElements * sizeof(unsigned int), cudaMemcpyHostToDevice);
-
+        //cudaMemcpy(d_keys, h_keys, numElements * sizeof(T), cudaMemcpyHostToDevice);
+	  //  if (!keysOnly)
+	    //    cudaMemcpy(d_values, h_values, numElements * sizeof(unsigned int), cudaMemcpyHostToDevice);
+    if (floatKeys)
+        makeRandomFloatVector((float*)h_keys, numElements);
+    else
+        makeRandomUintVector((unsigned int*)h_keys, numElements, keybits);
+	    cutilSafeCall( cudaEventRecord(start_event, 0) );
 
         if (floatKeys)
             radixsort.sort((float*)d_keys, d_values, numElements, keybits, true);
@@ -275,20 +279,20 @@ void testSort(int argc, char **argv)
     CUT_CHECK_ERROR("after radixsort");
 
     // Get results back to host for correctness checking
-    cudaMemcpy(h_keysSorted, d_keys, numElements * sizeof(T), cudaMemcpyDeviceToHost);
-    if (!keysOnly)
-        cudaMemcpy(h_values, d_values, numElements * sizeof(unsigned int), cudaMemcpyDeviceToHost);
-    else
+    //cudaMemcpy(h_keysSorted, d_keys, numElements * sizeof(T), cudaMemcpyDeviceToHost);
+    if (keysOnly)
         h_values = 0;
+      //  cudaMemcpy(h_values, d_values, numElements * sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
     CUT_CHECK_ERROR("copying results to host memory");
 
     // Check results
+    CUDA_SAFE_CALL( cudaThreadSynchronize() );
     bool passed = true;
     if (floatKeys)
-        passed = verifySortFloat((float*)h_keysSorted, h_values, (float*)h_keys, numElements);
+        passed = verifySortFloat((float*)h_keys, h_values, (float*)h_keys, numElements);
     else
-        passed = verifySortUint((unsigned int*)h_keysSorted, h_values, (unsigned int*)h_keys, numElements);
+        passed = verifySortUint((unsigned int*)h_keys, h_values, (unsigned int*)h_keys, numElements);
 
     if( !passed && !quiet )  
         printf("Sorting : FAIL\n");
@@ -305,15 +309,17 @@ void testSort(int argc, char **argv)
 
     cutilSafeCall( cudaEventDestroy(start_event) );
     cutilSafeCall( cudaEventDestroy(stop_event) );
-    cutilSafeCall( cudaFree(d_keys) );
-    cutilSafeCall( cudaFree(d_values) );
-    free(h_keys);
-    free(h_values);
+    cudaFreeHost(h_keys);
+    cudaFreeHost(h_values);
 }
 
 int main(int argc, char **argv)
 {
-    cutilDeviceInit(argc, argv);
+    //cutilDeviceInit(argc, argv);
+    unsigned int flags = cudaDeviceMapHost;
+    CUDA_SAFE_CALL( cudaSetDeviceFlags(flags) );
+    CUDA_SAFE_CALL( cudaSetDevice(0) );
+  
   
     if( cutCheckCmdLineFlag( argc, (const char**)argv, "float") )
         testSort<float, true>(argc, argv);
