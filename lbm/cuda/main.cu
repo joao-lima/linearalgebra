@@ -14,7 +14,7 @@ int main( int argc, char **argv )
 
 	lb_config( &lb, argv[1], argv[2] );
 	gettimeofday( &t1, 0 );
-	lb_inti( &lb );
+	lb_init( &lb );
 	for( i= 0; i < lb.max_iter; i++ ) {
 		lb_redistribute( &lb );
 		lb_propagate( &lb );
@@ -23,6 +23,7 @@ int main( int argc, char **argv )
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}
+	lb_finalize( &lb );
 	gettimeofday( &t2, 0 );
 	tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
 	//std::cout << "time(s): " << tdelta << std::endl;

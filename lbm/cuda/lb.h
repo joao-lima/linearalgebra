@@ -51,6 +51,8 @@ void lb_bounceback( struct lattice *lb );
 
 void lb_relaxation( struct lattice *lb );
 
+void lb_finalize( struct lattice *lb );
+
 void lb_write_results( struct lattice *lb, const char *output );
 
 #endif /* _LB_H_ */
