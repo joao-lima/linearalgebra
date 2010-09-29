@@ -9,9 +9,9 @@ unsigned int pos( const int x, const int y,
 __global__ void lb_init_kernel( struct lb_d2q9 *lb, const int nx,
 		const int ny, const float density )
 {
-	float t_0 = density * 4.0 / 9.0;
-	float t_1 = density / 9.0;
-	float t_2 = density / 36.0;
+	const float t_0 = density * 4.0 / 9.0;
+	const float t_1 = density / 9.0;
+	const float t_2 = density / 36.0;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
@@ -37,8 +37,8 @@ __global__ void lb_redistribute_kernel( struct lb_d2q9 *lb,
 {
     //nx e ny sao as dimensoes
     //local variables
-    float t_1 = density * accel / 9.0;
-    float t_2 = density * accel / 36.0;
+    const float t_1 = density * accel / 9.0;
+    const float t_2 = density * accel / 36.0;
     int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
     if (x >= ny) return;
@@ -46,7 +46,7 @@ __global__ void lb_redistribute_kernel( struct lb_d2q9 *lb,
     //check false | true
     if ( (obst[x * nx] == 0) && ((lb[x * nx].d[3] - t_1) > 0) && 
                  ((lb[x * nx].d[6] - t_2) > 0) && 
-		 (lb[x * nx].d[7] - t_2 > 0)) {
+		 (lb[x * nx].d[7] - t_2 > 0) ) {
       //increase east
       lb[x * nx].d[1] += t_1;
       //decrease west
@@ -176,17 +176,19 @@ __global__ void lb_relaxation_kernel(
 		//zero velocity density
 		n_equ[0] = t_0 * d_loc * (1.0 - u_squ / (2.0 * c_squ));
 		//axis speeds: factor: t_1
-		n_equ[1] = t_1 * d_loc * (1.0 + u_n[1] / c_squ + u_n[1] * u_n[1] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[2] = t_1 * d_loc * (1.0 + u_n[2] / c_squ + u_n[2] * u_n[2] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[3] = t_1 * d_loc * (1.0 + u_n[3] / c_squ + u_n[3] * u_n[3] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[4] = t_1 * d_loc * (1.0 + u_n[4] / c_squ + u_n[4] * u_n[4] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
 
-		//diagonal speeds: factor t_2
-		n_equ[5] = t_2 * d_loc * (1.0 + u_n[5] / c_squ + u_n[5] * u_n[5] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[6] = t_2 * d_loc * (1.0 + u_n[6] / c_squ + u_n[6] * u_n[6] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[7] = t_2 * d_loc * (1.0 + u_n[7] / c_squ + u_n[7] * u_n[7] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
-		n_equ[8] = t_2 * d_loc * (1.0 + u_n[8] / c_squ + u_n[8] * u_n[8] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
+		for( i= 1; i <= 4; i++ ){
+			n_equ[i] = t_1 * d_loc * 
+				(1.0 + u_n[i] / c_squ + u_n[i] * u_n[i] 
+				 / (2.0 * c_squ * c_squ) - u_squ /
+				 (2.0 * c_squ));
+			n_equ[i+4] = t_2 * d_loc * 
+				(1.0 + u_n[i+4] / c_squ + u_n[i+4] * u_n[i+4] 
+				 / (2.0 * c_squ * c_squ) - u_squ /
+				 (2.0 * c_squ));
+		}
 
+		// relaxation step
 		for (i = 0; i < 9; i++)
 			lb[pos(x,y,nx)].d[i] = tmp[pos(x,y,nx)].d[i]
 			       	+ omega * (n_equ[i] - tmp[pos(x,y,nx)].d[i]);

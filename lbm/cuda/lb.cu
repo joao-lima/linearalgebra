@@ -43,6 +43,7 @@ void lb_config( struct lattice *lb, const char *path_parameters,
 	fprintf( stdout, "nx=%d ny=%d ndim=%d maxiter=%d nobst=%d\n",
 	      lb->nx, lb->ny, lb->ndim, lb->max_iter, lb->nobst );
 	fflush( stdout );
+
 	lb_allocate( lb );
 	while( c < lb->nobst ){
 		fscanf( f_obstacles, "%d %d", &i, &j );
@@ -71,7 +72,7 @@ static void lb_allocate( struct lattice *lb )
 	CUDA_SAFE_CALL( cudaMemset( lb->d_tmp, 0, memsize ) );
 
 	// memory for obstacles
-	memsize= lb->nobst * sizeof(unsigned short);
+	memsize= lb->nx * lb->ny * sizeof(unsigned short);
 	lb->h_obst= (unsigned short*) malloc( memsize );
 	memset( lb->h_obst, 0, memsize );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, memsize ) );
@@ -79,15 +80,16 @@ static void lb_allocate( struct lattice *lb )
 
 void lb_init( struct lattice *lb )
 {
-	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
-	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
-			(lb->ny+BLOCK_SIZE-1)/threads.y );
 #ifdef _DEBUG
 	fprintf( stdout, "lb_init\n" );
 	fflush(stdout);
 #endif
 	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
-		lb->nobst * sizeof(unsigned short), cudaMemcpyHostToDevice) );
+		lb->nx * lb->ny * sizeof(unsigned short),
+	       	cudaMemcpyHostToDevice) );
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
+			(lb->ny+BLOCK_SIZE-1)/threads.y );
 	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->nx, lb->ny,
 		       lb->density );
 }
@@ -240,8 +242,13 @@ void lb_write_results( struct lattice *lb, const char *output )
 
 				// TODO: attention: bizarre!
 				// x-, and y- velocity components
-				u_x = (lb->h_data[POS(x,y,lb->nx)].d[1] + lb->h_data[POS(x,y,lb->nx)].d[5] + lb->h_data[POS(x,y,lb->nx)].d[8] - (lb->h_data[POS(x,y,lb->nx)].d[3] + lb->h_data[POS(x,y,lb->nx)].d[6] + lb->h_data[POS(x,y,lb->nx)].d[7])) / d_loc;
-				u_y = (lb->h_data[POS(x,y,lb->nx)].d[2] + lb->h_data[POS(x,y,lb->nx)].d[5] + lb->h_data[POS(x,y,lb->nx)].d[6] - (lb->h_data[POS(x,y,lb->nx)].d[4] + lb->h_data[POS(x,y,lb->nx)].d[7] + lb->h_data[POS(x,y,lb->nx)].d[8])) / d_loc;
+#define NODE(X,Y,D)		(lb->h_data[POS(X,Y,lb->nx)].d[D])
+				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8)
+					- (NODE(x,y,3) + NODE(x,y,6) +
+					NODE(x,y,7))) / d_loc;
+				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) -
+					(NODE(x,y,4) + NODE(x,y,7) +
+					 NODE(x,y,8))) / d_loc;
 				
 				//pressure
 				press = d_loc * c_squ;
