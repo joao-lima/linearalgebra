@@ -24,12 +24,11 @@ int main( int argc, char **argv )
 		//printf( "%d %f\n", i, vel );
 	}
 	lb_finalize( &lb );
+	lb_write_results( &lb, argv[3] );
+	lb_free( &lb );
 	gettimeofday( &t2, 0 );
 	tdelta = (t2.tv_sec-t1.tv_sec) + ((t2.tv_usec-t1.tv_usec)/1e6);
-	//std::cout << "time(s): " << tdelta << std::endl;
-	//std::cout << tdelta << std::endl;
 	fprintf( stdout, "%.4f\n", tdelta );
-	lb_write_results( &lb, argv[3] );
 
-	return 0;
+	return EXIT_SUCCESS;
 }

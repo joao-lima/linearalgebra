@@ -1,6 +1,6 @@
 
 CC := nvcc
-CFLAGS := 
+CFLAGS := -D_DEBUG -O2 -g
 PROGS := lb
 LDFLAGS :=
 

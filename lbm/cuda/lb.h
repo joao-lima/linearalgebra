@@ -28,9 +28,10 @@ struct lattice {
 	float r_rey;
 
 	//lattice structures
-	int nx, ny, ndim;
+	int nx, ny, ndim, nobst;
 
-	int *h_obst, *d_obst;
+	unsigned short *h_obst, *d_obst;
+	struct lb_d2q9 *h_data; // host lattice
 	struct lb_d2q9 *d_data, *d_tmp; // device lattice
 };
 
@@ -54,5 +55,7 @@ void lb_relaxation( struct lattice *lb );
 void lb_finalize( struct lattice *lb );
 
 void lb_write_results( struct lattice *lb, const char *output );
+
+void lb_free( struct lattice *lb );
 
 #endif /* _LB_H_ */
