@@ -3,7 +3,7 @@ __device__ inline
 unsigned int pos( const int x, const int y,
 		const int n ) 
 {
-	return ( x * n + y );
+	return ( y * n + x );
 }
 
 __global__ void lb_init_kernel( struct lb_d2q9 *lb, const int nx,
