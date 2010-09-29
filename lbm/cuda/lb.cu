@@ -6,7 +6,7 @@
 #include "cuda_safe.h"
 #include "lb_kernels.cu"
 
-#define POS(x,y,N)	((x-1)*N+(y-1))
+#define POS(x,y,N)	((y-1)*N+(x-1))
 
 static void lb_allocate( struct lattice *lb );
 
@@ -74,7 +74,7 @@ static void lb_allocate( struct lattice *lb )
 	memsize= lb->nobst * sizeof(unsigned short);
 	lb->h_obst= (unsigned short*) malloc( memsize );
 	memset( lb->h_obst, 0, memsize );
-	CUDA_SAFE_CALL( cudaMalloc( &lb->d_obst, memsize ) );
+	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, memsize ) );
 }
 
 void lb_init( struct lattice *lb )
@@ -88,8 +88,6 @@ void lb_init( struct lattice *lb )
 #endif
 	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
 		lb->nobst * sizeof(unsigned short), cudaMemcpyHostToDevice) );
-	fprintf( stdout, "bbbbb\n" );
-	fflush(stdout);
 	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->nx, lb->ny,
 		       lb->density );
 }
@@ -263,9 +261,9 @@ void lb_free( struct lattice *lb )
 	fprintf( stdout, "lb_free\n" );
 	fflush(stdout);
 #endif
-	free( lb->h_data );
 	CUDA_SAFE_CALL( cudaFree( lb->d_data ) );
 	CUDA_SAFE_CALL( cudaFree( lb->d_tmp ) );
+	free( lb->h_data );
 
 	free( lb->h_obst );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
