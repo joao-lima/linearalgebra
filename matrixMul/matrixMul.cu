@@ -86,8 +86,8 @@ main(int argc, char** argv)
 	// allocate host memory for the result
 	float* h_C = (float*) malloc(mem_size_C);
 	// setup execution parameters
-	dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 grid(WC / threads.x, HC / threads.y);
+	dim3 threads(BLOCK_SIZE * BLOCK_SIZE, 1);
+	dim3 grid((WC * HC) / threads.x, 1);
 
 	CUDA_SAFE_CALL(cudaEventRecord( e1, 0 ));
 	for( i= 0; i < max_iter; i++ ){

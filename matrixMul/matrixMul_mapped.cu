@@ -60,7 +60,7 @@ main(int argc, char** argv)
 	   */
 	unsigned int flags= cudaDeviceMapHost;
 	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
-	cudaSetDevice( 1 );
+	cudaSetDevice( 0 );
 
 	// set seed for rand()
 	srand(2006);
@@ -96,8 +96,10 @@ main(int argc, char** argv)
 	float* d_C;
 	CUDA_SAFE_CALL( cudaHostGetDevicePointer((void**) &d_C, h_C, 0) );
 	// setup execution parameters
-	dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 grid(WC / threads.x, HC / threads.y);
+	//dim3 threads(BLOCK_SIZE, BLOCK_SIZE);
+	//dim3 grid(WC / threads.x, HC / threads.y);
+	dim3 threads(BLOCK_SIZE * BLOCK_SIZE, 1);
+	dim3 grid((WC * HC) / threads.x, 1);
 
 	CUDA_SAFE_CALL(cudaEventRecord( e1, 0 ));
 	for( i= 0; i < max_iter; i++ ){
