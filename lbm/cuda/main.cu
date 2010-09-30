@@ -8,7 +8,7 @@ int main( int argc, char **argv )
 {
 	struct lattice lb;
 	double tdelta;
-	//float vel;
+	//double vel;
 	struct timeval t1, t2;
 	int i;
 

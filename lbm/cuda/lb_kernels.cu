@@ -7,17 +7,17 @@ unsigned int pos( const int x, const int y,
 }
 
 __global__ void lb_init_kernel( lb_d2q9_t *lb, lb_d2q9_t *tmp,
-		const int nx, const int ny, const float density )
+		const int nx, const int ny, const double density )
 {
-	//const float t_0 = density * 4.0 / 9.0;
-	//const float t_1 = density / 9.0;
-	//const float t_2 = density / 36.0;
+	//const double t_0 = density * 4.0 / 9.0;
+	//const double t_1 = density / 9.0;
+	//const double t_2 = density / 36.0;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
-	float t_0 = 1.0;
-	float t_1 = 1.0;
-	float t_2 = 1.0;
+	double t_0 = 1.0;
+	double t_1 = 1.0;
+	double t_2 = 1.0;
 	if( (y >= ny) || (x >= nx) ) return;
 
 	//zero velocity density
@@ -35,13 +35,13 @@ __global__ void lb_init_kernel( lb_d2q9_t *lb, lb_d2q9_t *tmp,
 }
 
 __global__ void lb_redistribute_kernel( lb_d2q9_t *lb,
-	const unsigned short *obst, const float accel, const float density,
+	const unsigned short *obst, const double accel, const double density,
 	const int nx, const int ny ) 
 {
     //nx e ny sao as dimensoes
     //local variables
-    const float t_1 = density * accel / 9.0;
-    const float t_2 = density * accel / 36.0;
+    const double t_1 = density * accel / 9.0;
+    const double t_2 = density * accel / 36.0;
     int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
     if (x >= ny) return;
@@ -134,14 +134,14 @@ __global__ void lb_bounceback_kernel( lb_d2q9_t *lb,
 __global__ void lb_relaxation_kernel( 
 		lb_d2q9_t *lb, const lb_d2q9_t *tmp,
 		const unsigned short *obst, const int nx, const int ny,
-		const float omega )
+		const double omega )
 {
-	const float c_squ = 1.0 / 3.0;
-	const float t_0 = 4.0 / 9.0;
-	const float t_1 = 1.0 / 9.0;
-	const float t_2 = 1.0 / 36.0;
-	float u_x, u_y;
-	float u_n[9], n_equ[9], u_squ, d_loc;
+	const double c_squ = 1.0 / 3.0;
+	const double t_0 = 4.0 / 9.0;
+	const double t_1 = 1.0 / 9.0;
+	const double t_2 = 1.0 / 36.0;
+	double u_x, u_y;
+	double u_n[9], n_equ[9], u_squ, d_loc;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 	int i;

@@ -17,15 +17,15 @@
 #endif
 
 typedef struct  {
-	float d[9];
+	double d[9];
 } lb_d2q9_t;
 
 struct lattice {
 	int max_iter; // maximum number of iterations
-	float density;
-	float accel;
-	float omega;
-	float r_rey;
+	double density;
+	double accel;
+	double omega;
+	double r_rey;
 
 	//lattice structures
 	int nx, ny, ndim, nobst;
@@ -42,7 +42,7 @@ void lb_config( struct lattice *lb, const char *path_parameters,
 // Init lattice structure and CUDA device
 void lb_init( struct lattice *lb );
 
-float lb_velocity( struct lattice *lbm, int time );
+double lb_velocity( struct lattice *lbm, int time );
 
 void lb_redistribute( struct lattice *lb );
 

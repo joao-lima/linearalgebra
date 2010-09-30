@@ -80,9 +80,9 @@ static void lb_allocate( struct lattice *lb )
 void lb_init( struct lattice *lb )
 {
 	int x, y;
-	const float t_0 = lb->density * 4.0 / 9.0;
-	const float t_1 = lb->density / 9.0;
-	const float t_2 = lb->density / 36.0;
+	const double t_0 = lb->density * 4.0 / 9.0;
+	const double t_1 = lb->density / 9.0;
+	const double t_2 = lb->density / 36.0;
 #ifdef _DEBUG
 	fprintf( stdout, "lb_init\n" );
 	fflush(stdout);
@@ -124,11 +124,11 @@ void lb_init( struct lattice *lb )
 /* essa função pode ter uma implementação CUDA/thrust 
    eu vi uma função chamada transform_reduce, quem sabe ...
 */
-float lb_velocity( struct lattice *lbm, int time )
+double lb_velocity( struct lattice *lbm, int time )
 {
 #if 0
 	int x, y, n_free;
-	float u_x, d_loc;
+	double u_x, d_loc;
 
 	x = nx/2;
 	n_free = 0;
@@ -236,10 +236,10 @@ void lb_write_results( struct lattice *lb, const char *output )
 {
 	int x, y, i;
 	int obsval;
-	float u_x, u_y, d_loc, press;
+	double u_x, u_y, d_loc, press;
 
 	//Square speed of sound
-	const float c_squ = 1.0 / 3.0;
+	const double c_squ = 1.0 / 3.0;
 
 #ifdef _DEBUG
 	fprintf( stdout, "lb_write_results\n" );
