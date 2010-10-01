@@ -13,12 +13,12 @@
 #define _LB_H_
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 64
 #endif
 
-struct lb_d2q9 {
+typedef struct  {
 	float d[9];
-};
+} lb_d2q9_t;
 
 struct lattice {
 	int max_iter; // maximum number of iterations
@@ -31,8 +31,8 @@ struct lattice {
 	int nx, ny, ndim, nobst;
 
 	unsigned short *h_obst, *d_obst;
-	struct lb_d2q9 *h_data; // host lattice
-	struct lb_d2q9 *d_data, *d_tmp; // device lattice
+	lb_d2q9_t *h_data; // host lattice
+	lb_d2q9_t *d_data, *d_tmp; // device lattice
 };
 
 // Read parameters and obstacles to the structure

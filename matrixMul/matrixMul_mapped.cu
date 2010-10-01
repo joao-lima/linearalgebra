@@ -60,7 +60,7 @@ main(int argc, char** argv)
 	   */
 	unsigned int flags= cudaDeviceMapHost;
 	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
-	cudaSetDevice( 1 );
+	cudaSetDevice( 0 );
 
 	// set seed for rand()
 	srand(2006);

@@ -1,20 +1,23 @@
 
 __device__ inline
 unsigned int pos( const int x, const int y,
-		const int n ) 
+		const int N ) 
 {
-	return ( y * n + x );
+	return ( y * N + x );
 }
 
-__global__ void lb_init_kernel( struct lb_d2q9 *lb, const int nx,
-		const int ny, const float density )
+__global__ void lb_init_kernel( lb_d2q9_t *lb, lb_d2q9_t *tmp,
+		const int nx, const int ny, const float density )
 {
-	float t_0 = density * 4.0 / 9.0;
-	float t_1 = density / 9.0;
-	float t_2 = density / 36.0;
+	//const float t_0 = density * 4.0 / 9.0;
+	//const float t_1 = density / 9.0;
+	//const float t_2 = density / 36.0;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
 	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
+	float t_0 = 1.0;
+	float t_1 = 1.0;
+	float t_2 = 1.0;
 	if( (y >= ny) || (x >= nx) ) return;
 
 	//zero velocity density
@@ -31,14 +34,14 @@ __global__ void lb_init_kernel( struct lb_d2q9 *lb, const int nx,
 	lb[ pos(x,y,nx) ].d[8] = t_2;
 }
 
-__global__ void lb_redistribute_kernel( struct lb_d2q9 *lb,
+__global__ void lb_redistribute_kernel( lb_d2q9_t *lb,
 	const unsigned short *obst, const float accel, const float density,
 	const int nx, const int ny ) 
 {
     //nx e ny sao as dimensoes
     //local variables
-    float t_1 = density * accel / 9.0;
-    float t_2 = density * accel / 36.0;
+    const float t_1 = density * accel / 9.0;
+    const float t_2 = density * accel / 36.0;
     int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
     if (x >= ny) return;
@@ -46,7 +49,7 @@ __global__ void lb_redistribute_kernel( struct lb_d2q9 *lb,
     //check false | true
     if ( (obst[x * nx] == 0) && ((lb[x * nx].d[3] - t_1) > 0) && 
                  ((lb[x * nx].d[6] - t_2) > 0) && 
-		 (lb[x * nx].d[7] - t_2 > 0)) {
+		 (lb[x * nx].d[7] - t_2 > 0) ) {
       //increase east
       lb[x * nx].d[1] += t_1;
       //decrease west
@@ -62,8 +65,8 @@ __global__ void lb_redistribute_kernel( struct lb_d2q9 *lb,
     }
 }
 
-__global__ void lb_propagate_kernel( struct lb_d2q9 *lb,
-		struct lb_d2q9 *tmp, const int nx, const int ny)
+__global__ void lb_propagate_kernel( lb_d2q9_t *lb,
+		lb_d2q9_t *tmp, const int nx, const int ny)
 {
 	int x_e = 0, x_w = 0, y_n = 0, y_s = 0;
 	int y = blockIdx.y * blockDim.y + threadIdx.y; 
@@ -99,8 +102,8 @@ __global__ void lb_propagate_kernel( struct lb_d2q9 *lb,
 	tmp[ pos(x_e,y_s,nx) ].d[8] = lb[ pos(x,y,nx) ].d[8];
 }
 
-__global__ void lb_bounceback_kernel( struct lb_d2q9 *lb,
-		const struct lb_d2q9 *tmp, const unsigned short *obst,
+__global__ void lb_bounceback_kernel( lb_d2q9_t *lb,
+		const lb_d2q9_t *tmp, const unsigned short *obst,
 		const int nx, const int ny )
 {
 	int x = blockIdx.y * blockDim.y + threadIdx.y; 
@@ -129,7 +132,7 @@ __global__ void lb_bounceback_kernel( struct lb_d2q9 *lb,
 }
 
 __global__ void lb_relaxation_kernel( 
-		struct lb_d2q9 *lb, const struct lb_d2q9 *tmp,
+		lb_d2q9_t *lb, const lb_d2q9_t *tmp,
 		const unsigned short *obst, const int nx, const int ny,
 		const float omega )
 {
@@ -187,6 +190,7 @@ __global__ void lb_relaxation_kernel(
 		n_equ[7] = t_2 * d_loc * (1.0 + u_n[7] / c_squ + u_n[7] * u_n[7] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
 		n_equ[8] = t_2 * d_loc * (1.0 + u_n[8] / c_squ + u_n[8] * u_n[8] / (2.0 * c_squ * c_squ) - u_squ / (2.0 * c_squ));
 
+		// relaxation step
 		for (i = 0; i < 9; i++)
 			lb[pos(x,y,nx)].d[i] = tmp[pos(x,y,nx)].d[i]
 			       	+ omega * (n_equ[i] - tmp[pos(x,y,nx)].d[i]);

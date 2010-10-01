@@ -6,7 +6,9 @@
 #include "cuda_safe.h"
 #include "lb_kernels.cu"
 
-#define POS(x,y,N)	((y-1)*N+(x-1))
+//#define OBJ(x,y,N)	(y*N+x)
+#define OBJ(x,y,N)	((y-1)*N+(x-1))
+#define POS(x,y,N)	(y*N+x)
 
 static void lb_allocate( struct lattice *lb );
 
@@ -43,10 +45,11 @@ void lb_config( struct lattice *lb, const char *path_parameters,
 	fprintf( stdout, "nx=%d ny=%d ndim=%d maxiter=%d nobst=%d\n",
 	      lb->nx, lb->ny, lb->ndim, lb->max_iter, lb->nobst );
 	fflush( stdout );
+
 	lb_allocate( lb );
 	while( c < lb->nobst ){
 		fscanf( f_obstacles, "%d %d", &i, &j );
-		lb->h_obst[ POS(i,j,lb->nx) ] = 1;
+		lb->h_obst[ OBJ(i,j,lb->nx) ] = 1;
 		c++;
 	}
 	fclose( f_parameters );
@@ -62,16 +65,13 @@ static void lb_allocate( struct lattice *lb )
 	fflush(stdout);
 #endif
 	// memory for the lattice
-	memsize= lb->nx * lb->ny * sizeof(struct lb_d2q9);
-	lb->h_data= (struct lb_d2q9*) malloc( memsize );
-	memset( lb->h_data, 0, memsize );
+	memsize= lb->nx * lb->ny * sizeof(lb_d2q9_t);
+	lb->h_data= (lb_d2q9_t*) malloc( memsize );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_data, memsize ) );
-	CUDA_SAFE_CALL( cudaMemset( lb->d_data, 0, memsize ) );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_tmp, memsize ) );
-	CUDA_SAFE_CALL( cudaMemset( lb->d_tmp, 0, memsize ) );
 
 	// memory for obstacles
-	memsize= lb->nobst * sizeof(unsigned short);
+	memsize= lb->nx * lb->ny * sizeof(unsigned short);
 	lb->h_obst= (unsigned short*) malloc( memsize );
 	memset( lb->h_obst, 0, memsize );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, memsize ) );
@@ -79,17 +79,45 @@ static void lb_allocate( struct lattice *lb )
 
 void lb_init( struct lattice *lb )
 {
-	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
-	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
-			(lb->ny+BLOCK_SIZE-1)/threads.y );
+	int x, y;
+	const float t_0 = lb->density * 4.0 / 9.0;
+	const float t_1 = lb->density / 9.0;
+	const float t_2 = lb->density / 36.0;
 #ifdef _DEBUG
 	fprintf( stdout, "lb_init\n" );
 	fflush(stdout);
 #endif
+
+	for( x= 0; x < lb->nx; x++) {
+		for( y= 0; y < lb->ny; y++ ){
+		//zero velocity density
+		lb->h_data[ POS(x,y,lb->nx) ].d[0] = t_0;
+		//equilibrium densities for axis speeds
+		lb->h_data[ POS(x,y,lb->nx) ].d[1] = t_1;
+		lb->h_data[ POS(x,y,lb->nx) ].d[2] = t_1;
+		lb->h_data[ POS(x,y,lb->nx) ].d[3] = t_1;
+		lb->h_data[ POS(x,y,lb->nx) ].d[4] = t_1;
+		//equilibrium densities for diagonal speeds
+		lb->h_data[ POS(x,y,lb->nx) ].d[5] = t_2;
+		lb->h_data[ POS(x,y,lb->nx) ].d[6] = t_2;
+		lb->h_data[ POS(x,y,lb->nx) ].d[7] = t_2;
+		lb->h_data[ POS(x,y,lb->nx) ].d[8] = t_2;
+		}
+	}
 	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
-		lb->nobst * sizeof(unsigned short), cudaMemcpyHostToDevice) );
-	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->nx, lb->ny,
-		       lb->density );
+		lb->nx * lb->ny * sizeof(unsigned short),
+	       	cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaMemcpy( lb->d_data, lb->h_data,
+		lb->nx * lb->ny * sizeof(lb_d2q9_t),
+	       	cudaMemcpyHostToDevice) );
+#if 0
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
+			(lb->ny+BLOCK_SIZE-1)/threads.y );
+	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
+			lb->nx, lb->ny, lb->density );
+	CUDA_SAFE_THREAD_SYNC();
+#endif
 }
 
 
@@ -149,6 +177,7 @@ void lb_redistribute( struct lattice *lb )
 #endif
 	lb_redistribute_kernel<<< grid, threads >>>( lb->d_data, lb->d_obst,
 		lb->accel, lb->density, lb->nx, lb->ny );
+	CUDA_SAFE_THREAD_SYNC();
 }
 
 void lb_propagate( struct lattice *lb )
@@ -163,6 +192,7 @@ void lb_propagate( struct lattice *lb )
 #endif
 	lb_propagate_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
 		lb->nx, lb->ny );
+	CUDA_SAFE_THREAD_SYNC();
 }
 
 void lb_bounceback( struct lattice *lb )
@@ -176,6 +206,7 @@ void lb_bounceback( struct lattice *lb )
 #endif
 	lb_bounceback_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
 			lb->d_obst, lb->nx, lb->ny );
+	CUDA_SAFE_THREAD_SYNC();
 }
 
 void lb_relaxation( struct lattice *lb )
@@ -186,6 +217,7 @@ void lb_relaxation( struct lattice *lb )
 	lb_relaxation_kernel<<< grid, threads >>>(
 			lb->d_data, lb->d_tmp, lb->d_obst,
 			lb->nx, lb->ny, lb->omega );
+	CUDA_SAFE_THREAD_SYNC();
 }
 
 void lb_finalize( struct lattice *lb )
@@ -194,10 +226,10 @@ void lb_finalize( struct lattice *lb )
 	fprintf( stdout, "lb_finalize\n" );
 	fflush(stdout);
 #endif
-	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 	CUDA_SAFE_CALL( cudaMemcpy( lb->h_data, lb->d_data,
-		lb->nx * lb->ny * sizeof(struct lb_d2q9),
+		lb->nx * lb->ny * sizeof(lb_d2q9_t),
 		cudaMemcpyDeviceToHost));
+	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 }
 
 void lb_write_results( struct lattice *lb, const char *output )
@@ -207,7 +239,7 @@ void lb_write_results( struct lattice *lb, const char *output )
 	float u_x, u_y, d_loc, press;
 
 	//Square speed of sound
-	float c_squ = 1.0 / 3.0;
+	const float c_squ = 1.0 / 3.0;
 
 #ifdef _DEBUG
 	fprintf( stdout, "lb_write_results\n" );
@@ -223,6 +255,13 @@ void lb_write_results( struct lattice *lb, const char *output )
 	for( y = 0; y < lb->ny; y++ ){
 		for( x = 0; x < lb->nx; x++ ){
 			//if obstacle node, nothing is to do
+#if 0
+			fprintf( archive, "%d %d ", x, y );
+			for( i= 0; i < 9; i++ )
+				fprintf( archive, "%f ", NODE(x,y,i) );
+			fprintf( archive, "\n" );
+			continue;
+#endif
 			if ( lb->h_obst[POS(x,y,lb->nx)] == 1 ) {
 				//obstacle indicator
 				obsval = 1;
@@ -238,10 +277,14 @@ void lb_write_results( struct lattice *lb, const char *output )
 				for( i= 0; i < lb->ndim; i++ )
 					d_loc += lb->h_data[ POS(x,y,lb->nx) ].d[i];
 
-				// TODO: attention: bizarre!
 				// x-, and y- velocity components
-				u_x = (lb->h_data[POS(x,y,lb->nx)].d[1] + lb->h_data[POS(x,y,lb->nx)].d[5] + lb->h_data[POS(x,y,lb->nx)].d[8] - (lb->h_data[POS(x,y,lb->nx)].d[3] + lb->h_data[POS(x,y,lb->nx)].d[6] + lb->h_data[POS(x,y,lb->nx)].d[7])) / d_loc;
-				u_y = (lb->h_data[POS(x,y,lb->nx)].d[2] + lb->h_data[POS(x,y,lb->nx)].d[5] + lb->h_data[POS(x,y,lb->nx)].d[6] - (lb->h_data[POS(x,y,lb->nx)].d[4] + lb->h_data[POS(x,y,lb->nx)].d[7] + lb->h_data[POS(x,y,lb->nx)].d[8])) / d_loc;
+#define NODE(X,Y,D)		(lb->h_data[POS(X,Y,lb->nx)].d[D])
+				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8)
+					- (NODE(x,y,3) + NODE(x,y,6) +
+					NODE(x,y,7))) / d_loc;
+				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) -
+					(NODE(x,y,4) + NODE(x,y,7) +
+					 NODE(x,y,8))) / d_loc;
 				
 				//pressure
 				press = d_loc * c_squ;

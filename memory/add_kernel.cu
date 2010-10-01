@@ -10,6 +10,7 @@ __global__ void add_one( float *data )
   float res;
   float x= data[index];
   res = x + 1;
+        __syncthreads();
   data[index] = res;
 }
 

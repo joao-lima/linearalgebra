@@ -7,7 +7,7 @@
 int main( int argc, char **argv )
 {
 	struct lattice lb;
-	double tdelta;
+	float tdelta;
 	//float vel;
 	struct timeval t1, t2;
 	int i;
@@ -19,7 +19,9 @@ int main( int argc, char **argv )
 		lb_redistribute( &lb );
 		lb_propagate( &lb );
 		lb_bounceback( &lb );
+#if 1
 		lb_relaxation( &lb );
+#endif
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}
