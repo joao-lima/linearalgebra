@@ -40,7 +40,7 @@ main(int argc, char** argv)
 	   */
 	unsigned int flags= cudaDeviceMapHost;
 	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
-	CUDA_SAFE_CALL( cudaSetDevice( 1 ) );
+	cudaSetDevice( DEVICE );
 
 	/* CUDA flags:
 	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
@@ -56,11 +56,13 @@ main(int argc, char** argv)
 	cudaEventCreate( &e2 );
 	// setup execution parameters
 	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( nelem / threads.x, 1 );
+	dim3 grid( 128, 1);
+	// number of elements per thread
+	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
-		add_one<<< grid, threads >>>( d_data );
+		add_one<<< grid, threads >>>( d_data, nblock );
 		cutilCheckMsg("Kernel execution failed");
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );

@@ -35,7 +35,7 @@ main(int argc, char** argv)
 		mem_size =  (1 << atoi(argv[1]));
 	unsigned int nelem= mem_size/sizeof(float);
 
-	cudaSetDevice( 0 );
+	cudaSetDevice( DEVICE );
 	// allocate host memory for matrices A and B
 	h_data= (float*)malloc( mem_size );
 	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
@@ -46,14 +46,15 @@ main(int argc, char** argv)
 	cudaEventCreate( &e2 );
 	// setup execution parameters
 	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( (nelem / threads.x) > 128 ? 128 : nelem / threads.x , 1);
+	dim3 grid( 128, 1);
+	// number of elements per thread
+	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
 		CUDA_SAFE_CALL( cudaMemcpy( d_data, h_data, mem_size,
 				      cudaMemcpyHostToDevice) );
-		add_one<<< grid, threads >>>( d_data, 
-			nelem/(BLOCK_SIZE*grid.x) );
+		add_one<<< grid, threads >>>( d_data, nblock );
 		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
 				      cudaMemcpyDeviceToHost) );
 	}

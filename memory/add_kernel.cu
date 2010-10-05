@@ -3,6 +3,9 @@
 
 // Thread block size
 #define BLOCK_SIZE 256
+#ifndef DEVICE
+#define DEVICE	0
+#endif
 
 __global__ void add_one( float *data, unsigned int nblock )
 {
