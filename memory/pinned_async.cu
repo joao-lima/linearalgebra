@@ -62,8 +62,9 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
 		for( j= 0; j < NSTREAM; j++ ){
-		CUDA_SAFE_CALL( cudaMemcpyAsync( d_data+j*n_per_stream,
-			h_data+j*n_per_stream,
+			void *d= ((void*)d_data)+j*n_per_stream;
+			void *h= ((void*)h_data)+j*n_per_stream;
+		CUDA_SAFE_CALL( cudaMemcpyAsync( d, h ,
 			n_per_stream, cudaMemcpyHostToDevice, stream[j]) );
 		}
 		cudaThreadSynchronize();
