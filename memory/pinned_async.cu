@@ -56,7 +56,7 @@ main(int argc, char** argv)
 	dim3 grid( 128, 1);
 	// number of elements per thread
 	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
-	unsigned int n_per_stream = mem_size / NSTREAM;
+	unsigned int n_per_stream = nelem / NSTREAM;
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
