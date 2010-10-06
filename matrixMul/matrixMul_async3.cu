@@ -106,7 +106,7 @@ main(int argc, char** argv)
 		CUDA_SAFE_CALL(cudaMemcpyAsync(d_B, h_B, mem_size_B,
 				      cudaMemcpyHostToDevice, stream[1]) );
 		// execute the kernel
-		//cudaThreadSynchronize();
+		cudaThreadSynchronize();
 		matrixMul<<< grid, threads >>>(d_C, d_A, d_B, WA, WB);
 		// check if kernel execution generated and error
 		cutilCheckMsg("Kernel execution failed");
