@@ -2,7 +2,7 @@
 #define _ADD_KERNEL_H_
 
 // Thread block size
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 64
 #ifndef DEVICE
 #define DEVICE	0
 #endif
