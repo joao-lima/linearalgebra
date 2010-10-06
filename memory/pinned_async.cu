@@ -29,7 +29,7 @@ main(int argc, char** argv)
 	float bandwidth_in_MBs= 0;
 	int i, j, max_iter= 10;
 	float *h_data, *d_data;
-#define NSTREAM		2
+#define NSTREAM		8
 	cudaStream_t stream[NSTREAM];
 
 	if( argc > 1 )
@@ -63,7 +63,8 @@ main(int argc, char** argv)
 		for( j= 0; j < NSTREAM; j++ ){
 		CUDA_SAFE_CALL( cudaMemcpyAsync( d_data+j*n_per_stream,
 			h_data+j*n_per_stream,
-			n_per_stream, cudaMemcpyHostToDevice, stream[j]) );
+			n_per_stream*sizeof(float),
+			cudaMemcpyHostToDevice, stream[j]) );
 		}
 		cudaThreadSynchronize();
 		add_one<<< grid, threads >>>( d_data, nblock );
