@@ -273,18 +273,14 @@ void lb_write_results( struct lattice *lb, const char *output )
 			} else {
 				//integral local density
 				//initialize variable d_loc
-				d_loc= 0.0;
+				d_loc= 0.0f;
 				for( i= 0; i < lb->ndim; i++ )
 					d_loc += lb->h_data[ POS(x,y,lb->nx) ].d[i];
 
-				// x-, and y- velocity components
 #define NODE(X,Y,D)		(lb->h_data[POS(X,Y,lb->nx)].d[D])
-				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8)
-					- (NODE(x,y,3) + NODE(x,y,6) +
-					NODE(x,y,7))) / d_loc;
-				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) -
-					(NODE(x,y,4) + NODE(x,y,7) +
-					 NODE(x,y,8))) / d_loc;
+				// x-, and y- velocity components
+				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8) - (NODE(x,y,3) + NODE(x,y,6) + NODE(x,y,7))) / d_loc;
+				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) - (NODE(x,y,4) + NODE(x,y,7) + NODE(x,y,8))) / d_loc;
 				
 				//pressure
 				press = d_loc * c_squ;
