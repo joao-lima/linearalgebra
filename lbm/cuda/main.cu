@@ -8,18 +8,19 @@ int main( int argc, char **argv )
 {
 	struct lattice lb;
 	double tdelta;
-	//double vel;
+	//float vel;
 	struct timeval t1, t2;
 	int i;
 
 	lb_config( &lb, argv[1], argv[2] );
 	gettimeofday( &t1, 0 );
 	lb_init( &lb );
-	for( i= 0; i < lb.max_iter; i++ ) {
+	for( i= 0; i < lb.max_iter; i++ ) 
+	{
 		lb_redistribute( &lb );
 		lb_propagate( &lb );
-		lb_bounceback( &lb );
 #if 1
+		lb_bounceback( &lb );
 		lb_relaxation( &lb );
 #endif
 		//vel = lbm.velocity( i );

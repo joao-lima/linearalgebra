@@ -384,6 +384,13 @@ void write_results(string file, s_lattice *l, double density)
 
 	for(y = 0; y < l->ly; y++) {
 		for(x = 0; x < l->lx; x++) {
+#if 1
+			fprintf( archive, "%d %d ", x, y );
+			for( i= 0; i < 9; i++ )
+				fprintf( archive, "%f ", l->node[x][y][i]);
+			fprintf( archive, "\n" );
+			continue;
+#endif
 			//if obstacle node, nothing is to do
 			if (l->obst[x][y] == true) {
 				//obstacle indicator

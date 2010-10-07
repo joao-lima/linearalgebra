@@ -106,10 +106,10 @@ __global__ void lb_bounceback_kernel( lb_d2q9_t *lb,
 		const lb_d2q9_t *tmp, const unsigned short *obst,
 		const int nx, const int ny )
 {
-	int x = blockIdx.y * blockDim.y + threadIdx.y; 
-	int y = blockIdx.x * blockDim.x + threadIdx.x; 
+	int y = blockIdx.y * blockDim.y + threadIdx.y; 
+	int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
-	if ( (x >= ny) || (y >= nx) ) return;
+	if ( (y >= ny) || (x >= nx) ) return;
 
 	if ( obst[ pos(x,y,nx) ] == 1 ){
 		//east
@@ -193,7 +193,7 @@ __global__ void lb_relaxation_kernel(
 		// relaxation step
 		for (i = 0; i < 9; i++)
 			lb[pos(x,y,nx)].d[i] = tmp[pos(x,y,nx)].d[i]
-			       	+ omega * (n_equ[i] - tmp[pos(x,y,nx)].d[i]);
+		      	+ omega * (n_equ[i] - tmp[pos(x,y,nx)].d[i]);
 	}
 }
 
