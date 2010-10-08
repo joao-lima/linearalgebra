@@ -26,7 +26,9 @@ void saxpy( float A, float *x, float *y, unsigned int N )
 	int i, max_iter= 1;
 	cudaEvent_t e1, e2;
 	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( (N+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
+	unsigned int grid_size= (N+BLOCK_SIZE-1)/BLOCK_SIZE;
+	dim3 grid( (grid_size < 65536) ? grid_size : 32768, 1 );
+	unsigned int n_block= N/(BLOCK_SIZE*grid.x);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	unsigned int mem_size= N * sizeof(float);
@@ -44,7 +46,7 @@ void saxpy( float A, float *x, float *y, unsigned int N )
 				      cudaMemcpyHostToDevice) );
 		CUDA_SAFE_CALL( cudaMemcpy( d_y, y, N*sizeof(float),
 				      cudaMemcpyHostToDevice) );
-		saxpy_kernel<<< grid, threads >>>( d_x, d_y, N,
+		saxpy_kernel<<< grid, threads >>>( d_x, d_y, N, n_block,
 			saxpy_gpu(A) );
 		CUDA_SAFE_CALL( cudaMemcpy( y, d_y, N*sizeof(float),
 				      cudaMemcpyDeviceToHost) );

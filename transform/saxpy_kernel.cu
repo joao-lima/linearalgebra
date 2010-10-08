@@ -3,11 +3,14 @@
 
 template<class Op>
 __global__ void saxpy_kernel(const float *x, float *y, const unsigned int N,
+		const unsigned int n_block,
 		Op op )
 {
-	int index= blockDim.x * blockIdx.x + threadIdx.x;
-	if( index < N )
-		y[index]= op( x[index], y[index] );
+	int index= (blockDim.x * blockIdx.x + threadIdx.x)*n_block;
+	int i;
+	for( i= 0; i < n_block; i++ )
+		if( (index+i) < N )
+			y[index+i]= op( x[index+i], y[index+i] );
 }
 
 struct saxpy_gpu 
