@@ -23,7 +23,7 @@ void check( float A, float *x, float *y, float *ref_y, unsigned int N )
 void saxpy( float A, float *x, float *y, unsigned int N )
 {
 	float *d_x, *d_y;
-	int i, max_iter= 1;
+	int i, max_iter= 10;
 	cudaEvent_t e1, e2;
 	dim3 threads( BLOCK_SIZE, 1 );
 	unsigned int grid_size= (N+BLOCK_SIZE-1)/BLOCK_SIZE;
@@ -92,7 +92,7 @@ int main( int argc, char *argv[] )
 	memcpy( ref_y, y, mem_size );
 	cudaSetDevice( DEVICE );
 	saxpy( 2.0, x, y, nelem );
-	check( 2.0, x, y, ref_y, nelem );
+	//check( 2.0, x, y, ref_y, nelem );
 	free( x );
 	free( y );
 	free( ref_y );
