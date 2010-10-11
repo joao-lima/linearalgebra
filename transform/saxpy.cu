@@ -3,8 +3,10 @@
 #include <algorithm>
 
 #include "cuda_defs.h"
+#include "tb.h"
 
 #include "saxpy_kernel.cu"
+#include "tb_kernel.cu"
 
 void check( float A, float *x, float *y, float *ref_y, unsigned int N )
 {
@@ -20,18 +22,23 @@ void check( float A, float *x, float *y, float *ref_y, unsigned int N )
 	}
 }
 
-void saxpy( float A, float *x, float *y, unsigned int N )
+void saxpy( float A, float *x, float *y, const unsigned int N,
+	const unsigned int gpu_sm_count )
 {
 	float *d_x, *d_y;
-	int i, max_iter= 10;
-	cudaEvent_t e1, e2;
-	dim3 threads( BLOCK_SIZE, 1 );
-	unsigned int grid_size= (N+BLOCK_SIZE-1)/BLOCK_SIZE;
-	dim3 grid( (grid_size < 65536) ? grid_size : 32768, 1 );
-	unsigned int n_block= N/(BLOCK_SIZE*grid.x);
+	int max_iter= 1;
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
+	unsigned int n_block, n_beg;
+	unsigned int sm;
+
+	fprintf( stdout, "saxpy N=%d gpu_sm_count=%d\n", N, gpu_sm_count );
+	fflush( stdout );
+	cudaEvent_t e1, e2;
 	unsigned int mem_size= N * sizeof(float);
+	unsigned int flags= cudaDeviceMapHost;
+	CUDA_SAFE_CALL( cudaSetDeviceFlags(flags) );
+	CUDA_SAFE_CALL( cudaSetDevice( DEVICE ) );
 
 	// Y <- A * X + Y
 	// setup execution parameters
@@ -39,18 +46,48 @@ void saxpy( float A, float *x, float *y, unsigned int N )
 	cudaEventCreate( &e2 );
 	CUDA_SAFE_CALL( cudaMalloc((void**)&d_x, mem_size) );
 	CUDA_SAFE_CALL( cudaMalloc((void**)&d_y, mem_size) );
+	CUDA_SAFE_CALL( cudaMemcpy( d_x, x, N*sizeof(float),
+			      cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaMemcpy( d_y, y, N*sizeof(float),
+			      cudaMemcpyHostToDevice) );
+
+	flags= cudaHostAllocMapped;
+	void *h_tb, *d_tb;
+	CUDA_SAFE_CALL( cudaHostAlloc(&h_tb,
+		gpu_sm_count * sizeof(tb_t), flags) );
+	CUDA_SAFE_CALL( cudaHostGetDevicePointer(&d_tb, h_tb, 0) );
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
-	for( i= 0; i < max_iter; i++ ){
-		CUDA_SAFE_CALL( cudaMemcpy( d_x, x, N*sizeof(float),
-				      cudaMemcpyHostToDevice) );
-		CUDA_SAFE_CALL( cudaMemcpy( d_y, y, N*sizeof(float),
-				      cudaMemcpyHostToDevice) );
-		saxpy_kernel<<< grid, threads >>>( d_x, d_y, N, n_block,
-			saxpy_gpu(A) );
-		CUDA_SAFE_CALL( cudaMemcpy( y, d_y, N*sizeof(float),
-				      cudaMemcpyDeviceToHost) );
+	for( sm= 0; sm < gpu_sm_count; sm++ ) {
+		volatile tb_t *tb = &((volatile tb_t*)h_tb)[sm];
+		tb_init( tb );
 	}
+	tb_kernel<<< gpu_sm_count, 1 >>>( (volatile tb_t*)d_tb, d_x, d_y, N, saxpy_gpu(A));
+	n_block= N / gpu_sm_count;
+	n_beg= 0;
+	for( sm= 0; sm < gpu_sm_count; sm++ ) {
+		volatile tb_t* const tb = &((volatile tb_t*)h_tb)[sm];
+		tb_post( tb, n_beg, n_block );
+		n_beg += n_block;
+	}
+	fprintf( stdout, "saxpy post done\n" );
+	fflush( stdout );
+	for( sm= 0; sm < gpu_sm_count; sm++ ) {
+		volatile tb_t* const tb = &((volatile tb_t*)h_tb)[sm];
+		tb_wait( tb );
+	}
+	fprintf( stdout, "saxpy wait done\n" );
+	fflush( stdout );
+	for( sm= 0; sm < gpu_sm_count; sm++ ) {
+		volatile tb_t* const tb = &((volatile tb_t*)h_tb)[sm];
+		tb_finish( tb );
+	}
+	fprintf( stdout, "saxpy finish done\n" );
+	fflush( stdout );
+	CUDA_SAFE_CALL( cudaMemcpy( y, d_y, N*sizeof(float),
+			      cudaMemcpyDeviceToHost) );
+	//for( i= 0; i < max_iter; i++ ){
+	//}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 
@@ -67,6 +104,7 @@ void saxpy( float A, float *x, float *y, unsigned int N )
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	CUDA_SAFE_CALL( cudaFree(d_x) );
 	CUDA_SAFE_CALL( cudaFree(d_y) );
+	CUDA_SAFE_CALL( cudaFreeHost(h_tb) );
 }
 
 void randomInit( float* data, int size )
@@ -79,9 +117,12 @@ int main( int argc, char *argv[] )
 {
 	unsigned int mem_size= (1 << 25);
 	float *x, *y, *ref_y;
+	unsigned int gpu_sm_count= 1;
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
+	if( argc > 2 )
+		gpu_sm_count = atoi(argv[2]);
 	unsigned int nelem= mem_size/sizeof(float);
 
 	x= (float*) malloc( mem_size );
@@ -91,8 +132,8 @@ int main( int argc, char *argv[] )
 	randomInit( y, nelem );
 	memcpy( ref_y, y, mem_size );
 	cudaSetDevice( DEVICE );
-	saxpy( 2.0, x, y, nelem );
-	//check( 2.0, x, y, ref_y, nelem );
+	saxpy( 2.0, x, y, nelem, gpu_sm_count );
+	check( 2.0, x, y, ref_y, nelem );
 	free( x );
 	free( y );
 	free( ref_y );

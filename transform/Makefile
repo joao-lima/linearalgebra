@@ -18,8 +18,10 @@ NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS))
 PROGS:= saxpy
 LDFLAGS:=
 
-saxpy: saxpy.cu saxpy_kernel.cu
-	$(CXX) $(NVCCFLAGS) -o $@ $< $(LDFLAGS)
+all: $(PROGS)
+
+saxpy: saxpy.cu tb.cu
+	$(CXX) $(NVCCFLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(PROGS) *.o
