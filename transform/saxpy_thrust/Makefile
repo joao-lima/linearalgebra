@@ -2,7 +2,7 @@
 CXX := nvcc
 CC := nvcc
 CXXFLAGS := -O2 -D_REENTRANT -g \
-	-I$(HOME)/cuda
+	-I$(HOME)/cuda/inc
 LDFLAGS := 
 PROGS := saxpy_thrust
 
