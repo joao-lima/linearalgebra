@@ -1,6 +1,6 @@
 
 CC := nvcc
-CFLAGS := 
+CFLAGS := -I$(HOME)/thrust
 PROGS := lb
 LDFLAGS :=
 
