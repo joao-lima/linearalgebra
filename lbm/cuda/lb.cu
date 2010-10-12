@@ -6,9 +6,8 @@
 #include "cuda_safe.h"
 #include "lb_kernels.cu"
 
-//#define OBJ(x,y,N)	(y*N+x)
-#define OBJ(x,y,N)	((y-1)*N+(x-1))
-#define POS(x,y,N)	(y*N+x)
+#define OBJ(X,Y,N)	((Y-1)*N+(X-1))
+#define POS(X,Y,N)	(Y*N+X)
 
 static void lb_allocate( struct lattice *lb );
 
@@ -79,15 +78,17 @@ static void lb_allocate( struct lattice *lb )
 
 void lb_init( struct lattice *lb )
 {
-	int x, y;
-	const float t_0 = lb->density * 4.0 / 9.0;
-	const float t_1 = lb->density / 9.0;
-	const float t_2 = lb->density / 36.0;
-#ifdef _DEBUG
-	fprintf( stdout, "lb_init\n" );
-	fflush(stdout);
+#if 0
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
+	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
+			lb->nx, lb->ny, lb->density );
+	CUDA_SAFE_THREAD_SYNC();
 #endif
-
+	int x, y;
+	float t_0 = lb->density * 4.0 / 9.0;
+	float t_1 = lb->density / 9.0;
+	float t_2 = lb->density / 36.0;
 	for( x= 0; x < lb->nx; x++) {
 		for( y= 0; y < lb->ny; y++ ){
 		//zero velocity density
@@ -104,19 +105,15 @@ void lb_init( struct lattice *lb )
 		lb->h_data[ POS(x,y,lb->nx) ].d[8] = t_2;
 		}
 	}
-	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
-		lb->nx * lb->ny * sizeof(unsigned short),
-	       	cudaMemcpyHostToDevice) );
 	CUDA_SAFE_CALL( cudaMemcpy( lb->d_data, lb->h_data,
 		lb->nx * lb->ny * sizeof(lb_d2q9_t),
 	       	cudaMemcpyHostToDevice) );
-#if 0
-	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
-	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
-			(lb->ny+BLOCK_SIZE-1)/threads.y );
-	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
-			lb->nx, lb->ny, lb->density );
-	CUDA_SAFE_THREAD_SYNC();
+	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
+		lb->nx * lb->ny * sizeof(unsigned short),
+	       	cudaMemcpyHostToDevice) );
+#ifdef _DEBUG
+	fprintf( stdout, "lb_init\n" );
+	fflush(stdout);
 #endif
 }
 
@@ -239,7 +236,7 @@ void lb_write_results( struct lattice *lb, const char *output )
 	float u_x, u_y, d_loc, press;
 
 	//Square speed of sound
-	const float c_squ = 1.0 / 3.0;
+	float c_squ = 1.0 / 3.0;
 
 #ifdef _DEBUG
 	fprintf( stdout, "lb_write_results\n" );
@@ -277,10 +274,16 @@ void lb_write_results( struct lattice *lb, const char *output )
 				for( i= 0; i < lb->ndim; i++ )
 					d_loc += lb->h_data[ POS(x,y,lb->nx) ].d[i];
 
-#define NODE(X,Y,D)		(lb->h_data[POS(X,Y,lb->nx)].d[D])
+#define NODE(X,Y,D)		(lb->h_data[(Y*lb->nx+X)].d[D])
 				// x-, and y- velocity components
 				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8) - (NODE(x,y,3) + NODE(x,y,6) + NODE(x,y,7))) / d_loc;
 				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) - (NODE(x,y,4) + NODE(x,y,7) + NODE(x,y,8))) / d_loc;
+#if 0
+				fprintf( stdout, "%d %d  ((%f+%f+%f)-(%f+%f+%f))/%f\n",
+				x, y,
+				NODE(x,y,1), NODE(x,y,5),  NODE(x,y,8),
+				NODE(x,y,3), NODE(x,y,6), NODE(x,y,7), d_loc);
+#endif
 				
 				//pressure
 				press = d_loc * c_squ;

@@ -384,7 +384,7 @@ void write_results(string file, s_lattice *l, double density)
 
 	for(y = 0; y < l->ly; y++) {
 		for(x = 0; x < l->lx; x++) {
-#if 1
+#if 0
 			fprintf( archive, "%d %d ", x, y );
 			for( i= 0; i < 9; i++ )
 				fprintf( archive, "%f ", l->node[x][y][i]);
