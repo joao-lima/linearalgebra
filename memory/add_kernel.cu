@@ -3,14 +3,21 @@
 
 // Thread block size
 #define BLOCK_SIZE 256
+#ifndef DEVICE
+#define DEVICE	0
+#endif
 
-__global__ void add_one( float *data )
+__global__ void add_one( float *data, unsigned int nblock )
 {
-  int index = blockIdx.x*blockDim.x + threadIdx.x;
-  float res;
-  float x= data[index];
-  res = x + 1;
-  data[index] = res;
+	int index = (blockIdx.x*blockDim.x + threadIdx.x)*nblock;
+	int i;
+	float res;
+	float x;
+	for( i= 0; i < nblock; i++ ){
+		x= data[index+i];
+		res = x + 1e0f;
+		data[index+i] = res;
+	}
 }
 
 
@@ -19,8 +26,10 @@ __host__ int check( const float *data, const float v, const unsigned int n )
 	int i;
 
 	for( i= 0; i < n; i++ )
-		if( data[i] != v )
+		if( data[i] != v ){
+			fprintf(stdout,"%d %f\n",i,data[i]);
 			return 0;
+		}
 	return 1;
 }
 
