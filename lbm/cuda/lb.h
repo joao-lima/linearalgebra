@@ -16,10 +16,6 @@
 #define BLOCK_SIZE 16
 #endif
 
-typedef struct  {
-	float d[9];
-} lb_d2q9_t;
-
 struct lattice {
 	int max_iter; // maximum number of iterations
 	float density;
@@ -33,8 +29,6 @@ struct lattice {
 	unsigned short *h_obst, *d_obst;
 	float *h_f[9], *d_f[9];
 	float *d_tf[9];
-	//lb_d2q9_t *h_data; // host lattice
-	//lb_d2q9_t *d_data, *d_tmp; // device lattice
 };
 
 // Read parameters and obstacles to the structure

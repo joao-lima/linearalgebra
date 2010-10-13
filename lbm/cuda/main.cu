@@ -12,6 +12,11 @@ int main( int argc, char **argv )
 	struct timeval t1, t2;
 	int i;
 
+	if( argc < 4 ) {
+		fprintf( stderr, "ERROR usage: ./lb <parameters> <input_file> <output_file>\n" );
+		return EXIT_FAILURE;
+	}
+
 	lb_config( &lb, argv[1], argv[2] );
 	gettimeofday( &t1, 0 );
 	lb_init( &lb );
@@ -19,10 +24,8 @@ int main( int argc, char **argv )
 	{
 		lb_redistribute( &lb );
 		lb_propagate( &lb );
-#if 1
 		lb_bounceback( &lb );
 		lb_relaxation( &lb );
-#endif
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}

@@ -81,13 +81,21 @@ static void lb_allocate( struct lattice *lb )
 
 void lb_init( struct lattice *lb )
 {
-#if 0
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
-	lb_init_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
+#ifdef _DEBUG
+	fprintf( stdout, "lb_init\n" );
+	fflush(stdout);
+#endif
+	lb_init_kernel<<< grid, threads >>>( 
+		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
+		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8],
 			lb->nx, lb->ny, lb->density );
 	CUDA_SAFE_THREAD_SYNC();
-#endif
+	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
+		lb->nx * lb->ny * sizeof(unsigned short),
+	       	cudaMemcpyHostToDevice) );
+#if 0
 	int x, y, i;
 	float t_0 = lb->density * 4.0 / 9.0;
 	float t_1 = lb->density / 9.0;
@@ -112,21 +120,14 @@ void lb_init( struct lattice *lb )
 		CUDA_SAFE_CALL( cudaMemcpy( lb->d_f[i], lb->h_f[i],
 			lb->nx * lb->ny * sizeof(float),
 			cudaMemcpyHostToDevice) );
-	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
-		lb->nx * lb->ny * sizeof(unsigned short),
-	       	cudaMemcpyHostToDevice) );
-#ifdef _DEBUG
-	fprintf( stdout, "lb_init\n" );
-	fflush(stdout);
 #endif
 }
 
 
-/* essa função pode ter uma implementação CUDA/thrust 
-   eu vi uma função chamada transform_reduce, quem sabe ...
-*/
 float lb_velocity( struct lattice *lbm, int time )
 {
+	(void) lbm;
+	(void) time;
 #if 0
 	int x, y, n_free;
 	float u_x, d_loc;
@@ -168,9 +169,6 @@ float lb_velocity( struct lattice *lbm, int time )
 
 void lb_redistribute( struct lattice *lb )
 {
-#if 1
-	/* here a kernel call */
-	// tem de chamar esse kernel com uma dimensao apenas
 	dim3 threads( BLOCK_SIZE, 1 );
 	dim3 grid( (lb->ny+BLOCK_SIZE-1)/BLOCK_SIZE, 1 );
 #ifdef _DEBUG
@@ -178,25 +176,14 @@ void lb_redistribute( struct lattice *lb )
 	fflush(stdout);
 #endif
 	lb_redistribute_kernel<<< grid, threads >>>(
-		lb->d_f[0], 
-		lb->d_f[1], 
-		lb->d_f[2], 
-		lb->d_f[3], 
-		lb->d_f[4], 
-		lb->d_f[5], 
-		lb->d_f[6], 
-		lb->d_f[7], 
-		lb->d_f[8], 
-		lb->d_obst,
+		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
+		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], lb->d_obst,
 		lb->accel, lb->density, lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
-#endif
 }
 
 void lb_propagate( struct lattice *lb )
 {
-#if 1
-	/* here a kernel call */
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
 			(lb->ny+BLOCK_SIZE-1)/threads.y );
@@ -205,61 +192,29 @@ void lb_propagate( struct lattice *lb )
 	fflush(stdout);
 #endif
 	lb_propagate_kernel<<< grid, threads >>>( 
-		lb->d_f[0], 
-		lb->d_f[1], 
-		lb->d_f[2], 
-		lb->d_f[3], 
-		lb->d_f[4], 
-		lb->d_f[5], 
-		lb->d_f[6], 
-		lb->d_f[7], 
-		lb->d_f[8], 
-		lb->d_tf[0], 
-		lb->d_tf[1], 
-		lb->d_tf[2], 
-		lb->d_tf[3], 
-		lb->d_tf[4], 
-		lb->d_tf[5], 
-		lb->d_tf[6], 
-		lb->d_tf[7], 
-		lb->d_tf[8], 
-		lb->nx, lb->ny );
+		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
+		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], 
+		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3],
+		lb->d_tf[4], lb->d_tf[5], lb->d_tf[6], lb->d_tf[7],
+		lb->d_tf[8], lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
-#endif
 }
 
 void lb_bounceback( struct lattice *lb )
 {
-	/* here a kernel call */
-#if 1
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
 #ifdef _DEBUG
 	fprintf( stdout, "lb_bounceback\n" );
 	fflush(stdout);
 #endif
-	lb_bounceback_kernel<<< grid, threads >>>(
-		lb->d_f[0], 
-		lb->d_f[1], 
-		lb->d_f[2], 
-		lb->d_f[3], 
-		lb->d_f[4], 
-		lb->d_f[5], 
-		lb->d_f[6], 
-		lb->d_f[7], 
-		lb->d_f[8], 
-		lb->d_tf[0], 
-		lb->d_tf[1], 
-		lb->d_tf[2], 
-		lb->d_tf[3], 
-		lb->d_tf[4], 
-		lb->d_tf[5], 
-		lb->d_tf[6], 
-		lb->d_tf[7], 
-		lb->d_tf[8], 
-			lb->d_obst, lb->nx, lb->ny );
+	lb_bounceback_kernel<<< grid, threads >>>( lb->d_f[0], lb->d_f[1], 
+		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
+		lb->d_f[7], lb->d_f[8],
+		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3], 
+		lb->d_tf[4], lb->d_tf[5], lb->d_tf[6], lb->d_tf[7],
+		lb->d_tf[8], lb->d_obst, lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
-#endif
 }
 
 void lb_relaxation( struct lattice *lb )
@@ -267,35 +222,21 @@ void lb_relaxation( struct lattice *lb )
 #if 1
 	/* here a kernel call */
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
-	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
-	lb_relaxation_kernel<<< grid, threads >>>(
-		lb->d_f[0], 
-		lb->d_f[1], 
-		lb->d_f[2], 
-		lb->d_f[3], 
-		lb->d_f[4], 
-		lb->d_f[5], 
-		lb->d_f[6], 
-		lb->d_f[7], 
-		lb->d_f[8], 
-		lb->d_tf[0], 
-		lb->d_tf[1], 
-		lb->d_tf[2], 
-		lb->d_tf[3], 
-		lb->d_tf[4], 
-		lb->d_tf[5], 
-		lb->d_tf[6], 
-		lb->d_tf[7], 
-		lb->d_tf[8], 
-			lb->d_obst,
-			lb->nx, lb->ny, lb->omega );
+	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
+			(lb->ny+BLOCK_SIZE-1)/threads.y );
+	lb_relaxation_kernel<<< grid, threads >>>( lb->d_f[0], lb->d_f[1], 
+		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
+		lb->d_f[7], lb->d_f[8],
+		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3], 
+		lb->d_tf[4], lb->d_tf[5], lb->d_tf[6], lb->d_tf[7], 
+		lb->d_tf[8], lb->d_obst,
+		lb->nx, lb->ny, lb->omega );
 	CUDA_SAFE_THREAD_SYNC();
 #endif
 }
 
 void lb_finalize( struct lattice *lb )
 {
-#if 1
 	int i;
 #ifdef _DEBUG
 	fprintf( stdout, "lb_finalize\n" );
@@ -306,7 +247,6 @@ void lb_finalize( struct lattice *lb )
 			lb->nx * lb->ny * sizeof(float),
 			cudaMemcpyDeviceToHost));
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
-#endif
 }
 
 void lb_write_results( struct lattice *lb, const char *output )
@@ -314,7 +254,6 @@ void lb_write_results( struct lattice *lb, const char *output )
 	int x, y, i;
 	int obsval;
 	float u_x, u_y, d_loc, press;
-
 	//Square speed of sound
 	float c_squ = 1.0 / 3.0;
 
@@ -322,7 +261,6 @@ void lb_write_results( struct lattice *lb, const char *output )
 	fprintf( stdout, "lb_write_results\n" );
 	fflush(stdout);
 #endif
-#if 1
 	//Open results output file
 	FILE *archive = fopen( output , "w");
 
@@ -333,13 +271,6 @@ void lb_write_results( struct lattice *lb, const char *output )
 	for( y = 0; y < lb->ny; y++ ){
 		for( x = 0; x < lb->nx; x++ ){
 			//if obstacle node, nothing is to do
-#if 0
-			fprintf( archive, "%d %d ", x, y );
-			for( i= 0; i < 9; i++ )
-				fprintf( archive, "%f ", NODE(x,y,i) );
-			fprintf( archive, "\n" );
-			continue;
-#endif
 			if ( lb->h_obst[POS(x,y,lb->nx)] == 1 ) {
 				//obstacle indicator
 				obsval = 1;
@@ -359,12 +290,6 @@ void lb_write_results( struct lattice *lb, const char *output )
 				// x-, and y- velocity components
 				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8) - (NODE(x,y,3) + NODE(x,y,6) + NODE(x,y,7))) / d_loc;
 				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) - (NODE(x,y,4) + NODE(x,y,7) + NODE(x,y,8))) / d_loc;
-#if 0
-				fprintf( stdout, "%d %d  ((%f+%f+%f)-(%f+%f+%f))/%f\n",
-				x, y,
-				NODE(x,y,1), NODE(x,y,5),  NODE(x,y,8),
-				NODE(x,y,3), NODE(x,y,6), NODE(x,y,7), d_loc);
-#endif
 				
 				//pressure
 				press = d_loc * c_squ;
@@ -376,7 +301,6 @@ void lb_write_results( struct lattice *lb, const char *output )
 	}
 	
 	fclose(archive);
-#endif
 }
 
 void lb_free( struct lattice *lb )
@@ -386,7 +310,6 @@ void lb_free( struct lattice *lb )
 	fflush(stdout);
 #endif
 	int i;
-#if 1
 	for( i= 0; i < lb->ndim; i++ ) {
 		CUDA_SAFE_CALL( cudaFree( lb->d_f[i] ) );
 		CUDA_SAFE_CALL( cudaFree( lb->d_tf[i] ) );
@@ -396,6 +319,7 @@ void lb_free( struct lattice *lb )
 	free( lb->h_obst );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
 	CUDA_SAFE_CALL( cudaThreadExit() );
-#endif
+#ifdef _DEBUG
 	fprintf(stdout,"bazzinga!\n"); fflush(stdout);
+#endif
 }
