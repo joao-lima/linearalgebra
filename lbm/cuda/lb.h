@@ -13,7 +13,7 @@
 #define _LB_H_
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 16
 #endif
 
 typedef struct  {
