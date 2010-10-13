@@ -2,7 +2,7 @@
 CC := nvcc
 PROGS := lb
 LDFLAGS :=
-NVCCFLAGS := -O2 -D_DEBUG -g
+NVCCFLAGS := -O2 #-D_DEBUG -g
 # Warning flags
 CXXWARN_FLAGS := \
 	-W -Wall \
