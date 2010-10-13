@@ -57,23 +57,26 @@ void lb_config( struct lattice *lb, const char *path_parameters,
 
 static void lb_allocate( struct lattice *lb )
 {
-	unsigned int memsize;
+	unsigned int mem_size;
+	int i;
 	
 #ifdef _DEBUG
 	fprintf( stdout, "lb_allocate\n" );
 	fflush(stdout);
 #endif
 	// memory for the lattice
-	memsize= lb->nx * lb->ny * sizeof(lb_d2q9_t);
-	lb->h_data= (lb_d2q9_t*) malloc( memsize );
-	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_data, memsize ) );
-	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_tmp, memsize ) );
+	mem_size= lb->nx * lb->ny * sizeof(float);
+	for( i= 0; i < lb->ndim; i++ ) {
+		lb->h_f[i]= (float*) malloc( mem_size );
+		CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_f[i], mem_size ) );
+		CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_tf[i], mem_size ) );
+	}
 
 	// memory for obstacles
-	memsize= lb->nx * lb->ny * sizeof(unsigned short);
-	lb->h_obst= (unsigned short*) malloc( memsize );
-	memset( lb->h_obst, 0, memsize );
-	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, memsize ) );
+	mem_size= lb->nx * lb->ny * sizeof(unsigned short);
+	lb->h_obst= (unsigned short*) malloc( mem_size );
+	memset( lb->h_obst, 0, mem_size );
+	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, mem_size ) );
 }
 
 void lb_init( struct lattice *lb )
@@ -85,29 +88,30 @@ void lb_init( struct lattice *lb )
 			lb->nx, lb->ny, lb->density );
 	CUDA_SAFE_THREAD_SYNC();
 #endif
-	int x, y;
+	int x, y, i;
 	float t_0 = lb->density * 4.0 / 9.0;
 	float t_1 = lb->density / 9.0;
 	float t_2 = lb->density / 36.0;
 	for( x= 0; x < lb->nx; x++) {
 		for( y= 0; y < lb->ny; y++ ){
 		//zero velocity density
-		lb->h_data[ POS(x,y,lb->nx) ].d[0] = t_0;
+		lb->h_f[0][ POS(x,y,lb->nx) ] = t_0;
 		//equilibrium densities for axis speeds
-		lb->h_data[ POS(x,y,lb->nx) ].d[1] = t_1;
-		lb->h_data[ POS(x,y,lb->nx) ].d[2] = t_1;
-		lb->h_data[ POS(x,y,lb->nx) ].d[3] = t_1;
-		lb->h_data[ POS(x,y,lb->nx) ].d[4] = t_1;
+		lb->h_f[1][ POS(x,y,lb->nx) ] = t_1;
+		lb->h_f[2][ POS(x,y,lb->nx) ] = t_1;
+		lb->h_f[3][ POS(x,y,lb->nx) ] = t_1;
+		lb->h_f[4][ POS(x,y,lb->nx) ] = t_1;
 		//equilibrium densities for diagonal speeds
-		lb->h_data[ POS(x,y,lb->nx) ].d[5] = t_2;
-		lb->h_data[ POS(x,y,lb->nx) ].d[6] = t_2;
-		lb->h_data[ POS(x,y,lb->nx) ].d[7] = t_2;
-		lb->h_data[ POS(x,y,lb->nx) ].d[8] = t_2;
+		lb->h_f[5][ POS(x,y,lb->nx) ] = t_2;
+		lb->h_f[6][ POS(x,y,lb->nx) ] = t_2;
+		lb->h_f[7][ POS(x,y,lb->nx) ] = t_2;
+		lb->h_f[8][ POS(x,y,lb->nx) ] = t_2;
 		}
 	}
-	CUDA_SAFE_CALL( cudaMemcpy( lb->d_data, lb->h_data,
-		lb->nx * lb->ny * sizeof(lb_d2q9_t),
-	       	cudaMemcpyHostToDevice) );
+	for( i= 0; i < lb->ndim; i++ )
+		CUDA_SAFE_CALL( cudaMemcpy( lb->d_f[i], lb->h_f[i],
+			lb->nx * lb->ny * sizeof(float),
+			cudaMemcpyHostToDevice) );
 	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
 		lb->nx * lb->ny * sizeof(unsigned short),
 	       	cudaMemcpyHostToDevice) );
@@ -164,6 +168,7 @@ float lb_velocity( struct lattice *lbm, int time )
 
 void lb_redistribute( struct lattice *lb )
 {
+#if 1
 	/* here a kernel call */
 	// tem de chamar esse kernel com uma dimensao apenas
 	dim3 threads( BLOCK_SIZE, 1 );
@@ -172,13 +177,25 @@ void lb_redistribute( struct lattice *lb )
 	fprintf( stdout, "lb_redistribute\n" );
 	fflush(stdout);
 #endif
-	lb_redistribute_kernel<<< grid, threads >>>( lb->d_data, lb->d_obst,
+	lb_redistribute_kernel<<< grid, threads >>>(
+		lb->d_f[0], 
+		lb->d_f[1], 
+		lb->d_f[2], 
+		lb->d_f[3], 
+		lb->d_f[4], 
+		lb->d_f[5], 
+		lb->d_f[6], 
+		lb->d_f[7], 
+		lb->d_f[8], 
+		lb->d_obst,
 		lb->accel, lb->density, lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
+#endif
 }
 
 void lb_propagate( struct lattice *lb )
 {
+#if 1
 	/* here a kernel call */
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
@@ -187,46 +204,109 @@ void lb_propagate( struct lattice *lb )
 	fprintf( stdout, "lb_propagate\n" );
 	fflush(stdout);
 #endif
-	lb_propagate_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
+	lb_propagate_kernel<<< grid, threads >>>( 
+		lb->d_f[0], 
+		lb->d_f[1], 
+		lb->d_f[2], 
+		lb->d_f[3], 
+		lb->d_f[4], 
+		lb->d_f[5], 
+		lb->d_f[6], 
+		lb->d_f[7], 
+		lb->d_f[8], 
+		lb->d_tf[0], 
+		lb->d_tf[1], 
+		lb->d_tf[2], 
+		lb->d_tf[3], 
+		lb->d_tf[4], 
+		lb->d_tf[5], 
+		lb->d_tf[6], 
+		lb->d_tf[7], 
+		lb->d_tf[8], 
 		lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
+#endif
 }
 
 void lb_bounceback( struct lattice *lb )
 {
 	/* here a kernel call */
+#if 1
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
 #ifdef _DEBUG
 	fprintf( stdout, "lb_bounceback\n" );
 	fflush(stdout);
 #endif
-	lb_bounceback_kernel<<< grid, threads >>>( lb->d_data, lb->d_tmp,
+	lb_bounceback_kernel<<< grid, threads >>>(
+		lb->d_f[0], 
+		lb->d_f[1], 
+		lb->d_f[2], 
+		lb->d_f[3], 
+		lb->d_f[4], 
+		lb->d_f[5], 
+		lb->d_f[6], 
+		lb->d_f[7], 
+		lb->d_f[8], 
+		lb->d_tf[0], 
+		lb->d_tf[1], 
+		lb->d_tf[2], 
+		lb->d_tf[3], 
+		lb->d_tf[4], 
+		lb->d_tf[5], 
+		lb->d_tf[6], 
+		lb->d_tf[7], 
+		lb->d_tf[8], 
 			lb->d_obst, lb->nx, lb->ny );
 	CUDA_SAFE_THREAD_SYNC();
+#endif
 }
 
 void lb_relaxation( struct lattice *lb )
 {
+#if 1
 	/* here a kernel call */
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x, (lb->ny+BLOCK_SIZE-1)/threads.y );
 	lb_relaxation_kernel<<< grid, threads >>>(
-			lb->d_data, lb->d_tmp, lb->d_obst,
+		lb->d_f[0], 
+		lb->d_f[1], 
+		lb->d_f[2], 
+		lb->d_f[3], 
+		lb->d_f[4], 
+		lb->d_f[5], 
+		lb->d_f[6], 
+		lb->d_f[7], 
+		lb->d_f[8], 
+		lb->d_tf[0], 
+		lb->d_tf[1], 
+		lb->d_tf[2], 
+		lb->d_tf[3], 
+		lb->d_tf[4], 
+		lb->d_tf[5], 
+		lb->d_tf[6], 
+		lb->d_tf[7], 
+		lb->d_tf[8], 
+			lb->d_obst,
 			lb->nx, lb->ny, lb->omega );
 	CUDA_SAFE_THREAD_SYNC();
+#endif
 }
 
 void lb_finalize( struct lattice *lb )
 {
+#if 1
+	int i;
 #ifdef _DEBUG
 	fprintf( stdout, "lb_finalize\n" );
 	fflush(stdout);
 #endif
-	CUDA_SAFE_CALL( cudaMemcpy( lb->h_data, lb->d_data,
-		lb->nx * lb->ny * sizeof(lb_d2q9_t),
-		cudaMemcpyDeviceToHost));
+	for( i= 0; i < lb->ndim; i++ )
+		CUDA_SAFE_CALL( cudaMemcpy( lb->h_f[i], lb->d_f[i],
+			lb->nx * lb->ny * sizeof(float),
+			cudaMemcpyDeviceToHost));
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
+#endif
 }
 
 void lb_write_results( struct lattice *lb, const char *output )
@@ -242,6 +322,7 @@ void lb_write_results( struct lattice *lb, const char *output )
 	fprintf( stdout, "lb_write_results\n" );
 	fflush(stdout);
 #endif
+#if 1
 	//Open results output file
 	FILE *archive = fopen( output , "w");
 
@@ -272,9 +353,9 @@ void lb_write_results( struct lattice *lb, const char *output )
 				//initialize variable d_loc
 				d_loc= 0.0f;
 				for( i= 0; i < lb->ndim; i++ )
-					d_loc += lb->h_data[ POS(x,y,lb->nx) ].d[i];
+					d_loc += lb->h_f[i][ POS(x,y,lb->nx) ];
 
-#define NODE(X,Y,D)		(lb->h_data[(Y*lb->nx+X)].d[D])
+#define NODE(X,Y,D)		(lb->h_f[D][(Y*lb->nx+X)])
 				// x-, and y- velocity components
 				u_x = (NODE(x,y,1) + NODE(x,y,5) + NODE(x,y,8) - (NODE(x,y,3) + NODE(x,y,6) + NODE(x,y,7))) / d_loc;
 				u_y = (NODE(x,y,2) + NODE(x,y,5) + NODE(x,y,6) - (NODE(x,y,4) + NODE(x,y,7) + NODE(x,y,8))) / d_loc;
@@ -295,6 +376,7 @@ void lb_write_results( struct lattice *lb, const char *output )
 	}
 	
 	fclose(archive);
+#endif
 }
 
 void lb_free( struct lattice *lb )
@@ -303,12 +385,17 @@ void lb_free( struct lattice *lb )
 	fprintf( stdout, "lb_free\n" );
 	fflush(stdout);
 #endif
-	CUDA_SAFE_CALL( cudaFree( lb->d_data ) );
-	CUDA_SAFE_CALL( cudaFree( lb->d_tmp ) );
-	free( lb->h_data );
+	int i;
+#if 1
+	for( i= 0; i < lb->ndim; i++ ) {
+		CUDA_SAFE_CALL( cudaFree( lb->d_f[i] ) );
+		CUDA_SAFE_CALL( cudaFree( lb->d_tf[i] ) );
+		free( lb->h_f[i] );
+	}
 
 	free( lb->h_obst );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
 	CUDA_SAFE_CALL( cudaThreadExit() );
+#endif
 	fprintf(stdout,"bazzinga!\n"); fflush(stdout);
 }

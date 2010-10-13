@@ -13,7 +13,7 @@
 #define _LB_H_
 
 #ifndef BLOCK_SIZE
-#define BLOCK_SIZE 64
+#define BLOCK_SIZE 16
 #endif
 
 typedef struct  {
@@ -31,8 +31,10 @@ struct lattice {
 	int nx, ny, ndim, nobst;
 
 	unsigned short *h_obst, *d_obst;
-	lb_d2q9_t *h_data; // host lattice
-	lb_d2q9_t *d_data, *d_tmp; // device lattice
+	float *h_f[9], *d_f[9];
+	float *d_tf[9];
+	//lb_d2q9_t *h_data; // host lattice
+	//lb_d2q9_t *d_data, *d_tmp; // device lattice
 };
 
 // Read parameters and obstacles to the structure
