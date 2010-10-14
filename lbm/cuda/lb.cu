@@ -257,7 +257,8 @@ void lb_finalize( struct lattice *lb )
 		CUDA_SAFE_CALL( cudaMemcpyAsync( lb->h_f[i], lb->d_f[i],
 			lb->nx * lb->ny * sizeof(float),
 			cudaMemcpyDeviceToHost, lb->stream));
-	CUDA_SAFE_CALL( cudaThreadSynchronize() );
+	//CUDA_SAFE_CALL( cudaThreadSynchronize() );
+	lb_sync( lb );
 }
 
 void lb_write_results( struct lattice *lb, const char *output )
