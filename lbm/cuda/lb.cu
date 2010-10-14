@@ -53,6 +53,8 @@ void lb_config( struct lattice *lb, const char *path_parameters,
 	}
 	fclose( f_parameters );
 	fclose( f_obstacles );
+
+	CUDA_SAFE_CALL( cudaStreamCreate(&lb->stream) );
 }
 
 static void lb_allocate( struct lattice *lb )
@@ -89,14 +91,14 @@ void lb_init( struct lattice *lb )
 	fprintf( stdout, "lb_init\n" );
 	fflush(stdout);
 #endif
-	lb_init_kernel<<< grid, threads >>>( 
+	lb_init_kernel<<< grid, threads, lb->stream >>>( 
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8],
 			lb->nx, lb->ny, lb->density );
 	CUDA_SAFE_THREAD_SYNC();
-	CUDA_SAFE_CALL( cudaMemcpy( lb->d_obst, lb->h_obst,
+	CUDA_SAFE_CALL( cudaMemcpyAsync( lb->d_obst, lb->h_obst,
 		lb->nx * lb->ny * sizeof(unsigned short),
-	       	cudaMemcpyHostToDevice) );
+	       	cudaMemcpyHostToDevice, lb->stream) );
 #if 0
 	int x, y, i;
 	float t_0 = lb->density * 4.0 / 9.0;
@@ -177,7 +179,7 @@ void lb_redistribute( struct lattice *lb )
 	fprintf( stdout, "lb_redistribute\n" );
 	fflush(stdout);
 #endif
-	lb_redistribute_kernel<<< grid, threads >>>(
+	lb_redistribute_kernel<<< grid, threads, lb->stream >>>(
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], lb->d_obst,
 		lb->accel, lb->density, lb->nx, lb->ny );
@@ -193,7 +195,7 @@ void lb_propagate( struct lattice *lb )
 	fprintf( stdout, "lb_propagate\n" );
 	fflush(stdout);
 #endif
-	lb_propagate_kernel<<< grid, threads >>>( 
+	lb_propagate_kernel<<< grid, threads, lb->stream >>>( 
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], 
 		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3],
@@ -210,7 +212,8 @@ void lb_bounceback( struct lattice *lb )
 	fprintf( stdout, "lb_bounceback\n" );
 	fflush(stdout);
 #endif
-	lb_bounceback_kernel<<< grid, threads >>>( lb->d_f[0], lb->d_f[1], 
+	lb_bounceback_kernel<<< grid, threads, lb->stream >>>( lb->d_f[0],
+			lb->d_f[1], 
 		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
 		lb->d_f[7], lb->d_f[8],
 		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3], 
@@ -226,7 +229,8 @@ void lb_relaxation( struct lattice *lb )
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
 			(lb->ny+BLOCK_SIZE-1)/threads.y );
-	lb_relaxation_kernel<<< grid, threads >>>( lb->d_f[0], lb->d_f[1], 
+	lb_relaxation_kernel<<< grid, threads, lb->stream >>>( lb->d_f[0],
+			lb->d_f[1], 
 		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
 		lb->d_f[7], lb->d_f[8],
 		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3], 
@@ -237,6 +241,11 @@ void lb_relaxation( struct lattice *lb )
 #endif
 }
 
+void lb_sync( struct lattice *lb )
+{
+	CUDA_SAFE_CALL( cudaStreamSynchronize(lb->stream) );
+}
+
 void lb_finalize( struct lattice *lb )
 {
 	int i;
@@ -245,9 +254,9 @@ void lb_finalize( struct lattice *lb )
 	fflush(stdout);
 #endif
 	for( i= 0; i < lb->ndim; i++ )
-		CUDA_SAFE_CALL( cudaMemcpy( lb->h_f[i], lb->d_f[i],
+		CUDA_SAFE_CALL( cudaMemcpyAsync( lb->h_f[i], lb->d_f[i],
 			lb->nx * lb->ny * sizeof(float),
-			cudaMemcpyDeviceToHost));
+			cudaMemcpyDeviceToHost, lb->stream));
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 }
 
@@ -321,6 +330,7 @@ void lb_free( struct lattice *lb )
 	CUDA_SAFE_CALL( cudaFreeHost( lb->h_obst ) );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
 	CUDA_SAFE_CALL( cudaThreadExit() );
+	CUDA_SAFE_CALL( cudaStreamDestroy( lb->stream ) );
 #ifdef _DEBUG
 	fprintf(stdout,"bazzinga!\n"); fflush(stdout);
 #endif

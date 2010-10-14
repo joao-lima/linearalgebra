@@ -29,6 +29,8 @@ struct lattice {
 	unsigned short *h_obst, *d_obst;
 	float *h_f[9], *d_f[9];
 	float *d_tf[9];
+
+	cudaStream_t stream;
 };
 
 // Read parameters and obstacles to the structure
@@ -47,6 +49,8 @@ void lb_propagate( struct lattice *lb );
 void lb_bounceback( struct lattice *lb );
 
 void lb_relaxation( struct lattice *lb );
+
+void lb_sync( struct lattice *lb );
 
 void lb_finalize( struct lattice *lb );
 

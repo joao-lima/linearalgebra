@@ -26,6 +26,7 @@ int main( int argc, char **argv )
 		lb_propagate( &lb );
 		lb_bounceback( &lb );
 		lb_relaxation( &lb );
+		lb_sync( &lb );
 		//vel = lbm.velocity( i );
 		//printf( "%d %f\n", i, vel );
 	}
