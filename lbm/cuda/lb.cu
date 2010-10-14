@@ -64,17 +64,19 @@ static void lb_allocate( struct lattice *lb )
 	fprintf( stdout, "lb_allocate\n" );
 	fflush(stdout);
 #endif
+	unsigned int flags= cudaHostAllocDefault;
 	// memory for the lattice
 	mem_size= lb->nx * lb->ny * sizeof(float);
 	for( i= 0; i < lb->ndim; i++ ) {
-		lb->h_f[i]= (float*) malloc( mem_size );
+		CUDA_SAFE_CALL( cudaHostAlloc( (void**)&lb->h_f[i],
+					mem_size, flags) );
 		CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_f[i], mem_size ) );
 		CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_tf[i], mem_size ) );
 	}
 
 	// memory for obstacles
 	mem_size= lb->nx * lb->ny * sizeof(unsigned short);
-	lb->h_obst= (unsigned short*) malloc( mem_size );
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&lb->h_obst, mem_size, flags ) );
 	memset( lb->h_obst, 0, mem_size );
 	CUDA_SAFE_CALL( cudaMalloc( (void**)&lb->d_obst, mem_size ) );
 }
@@ -313,10 +315,10 @@ void lb_free( struct lattice *lb )
 	for( i= 0; i < lb->ndim; i++ ) {
 		CUDA_SAFE_CALL( cudaFree( lb->d_f[i] ) );
 		CUDA_SAFE_CALL( cudaFree( lb->d_tf[i] ) );
-		free( lb->h_f[i] );
+		CUDA_SAFE_CALL( cudaFreeHost( lb->h_f[i] ) );
 	}
 
-	free( lb->h_obst );
+	CUDA_SAFE_CALL( cudaFreeHost( lb->h_obst ) );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
 	CUDA_SAFE_CALL( cudaThreadExit() );
 #ifdef _DEBUG
