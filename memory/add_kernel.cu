@@ -9,7 +9,7 @@
 
 __global__ void add_one( float *data, unsigned int nblock )
 {
-#if 0
+#if 1
 	int index = (blockIdx.x*blockDim.x + threadIdx.x)*nblock;
 	int i;
 	float res;
