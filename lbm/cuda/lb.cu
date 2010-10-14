@@ -321,6 +321,7 @@ void lb_free( struct lattice *lb )
 	fprintf( stdout, "lb_free\n" );
 	fflush(stdout);
 #endif
+	CUDA_SAFE_CALL( cudaStreamDestroy( lb->stream ) );
 	int i;
 	for( i= 0; i < lb->ndim; i++ ) {
 		CUDA_SAFE_CALL( cudaFree( lb->d_f[i] ) );
@@ -331,7 +332,6 @@ void lb_free( struct lattice *lb )
 	CUDA_SAFE_CALL( cudaFreeHost( lb->h_obst ) );
 	CUDA_SAFE_CALL( cudaFree( lb->d_obst ) );
 	CUDA_SAFE_CALL( cudaThreadExit() );
-	CUDA_SAFE_CALL( cudaStreamDestroy( lb->stream ) );
 #ifdef _DEBUG
 	fprintf(stdout,"bazzinga!\n"); fflush(stdout);
 #endif
