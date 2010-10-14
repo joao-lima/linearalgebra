@@ -91,7 +91,7 @@ void lb_init( struct lattice *lb )
 	fprintf( stdout, "lb_init\n" );
 	fflush(stdout);
 #endif
-	lb_init_kernel<<< grid, threads, lb->stream >>>( 
+	lb_init_kernel<<< grid, threads, 0, lb->stream >>>( 
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8],
 			lb->nx, lb->ny, lb->density );
@@ -179,7 +179,7 @@ void lb_redistribute( struct lattice *lb )
 	fprintf( stdout, "lb_redistribute\n" );
 	fflush(stdout);
 #endif
-	lb_redistribute_kernel<<< grid, threads, lb->stream >>>(
+	lb_redistribute_kernel<<< grid, threads, 0, lb->stream >>>(
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], lb->d_obst,
 		lb->accel, lb->density, lb->nx, lb->ny );
@@ -195,7 +195,7 @@ void lb_propagate( struct lattice *lb )
 	fprintf( stdout, "lb_propagate\n" );
 	fflush(stdout);
 #endif
-	lb_propagate_kernel<<< grid, threads, lb->stream >>>( 
+	lb_propagate_kernel<<< grid, threads, 0, lb->stream >>>( 
 		lb->d_f[0], lb->d_f[1], lb->d_f[2], lb->d_f[3], lb->d_f[4], 
 		lb->d_f[5], lb->d_f[6], lb->d_f[7], lb->d_f[8], 
 		lb->d_tf[0], lb->d_tf[1], lb->d_tf[2], lb->d_tf[3],
@@ -212,7 +212,7 @@ void lb_bounceback( struct lattice *lb )
 	fprintf( stdout, "lb_bounceback\n" );
 	fflush(stdout);
 #endif
-	lb_bounceback_kernel<<< grid, threads, lb->stream >>>( lb->d_f[0],
+	lb_bounceback_kernel<<< grid, threads, 0, lb->stream >>>( lb->d_f[0],
 			lb->d_f[1], 
 		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
 		lb->d_f[7], lb->d_f[8],
@@ -229,7 +229,7 @@ void lb_relaxation( struct lattice *lb )
 	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
 	dim3 grid( (lb->nx+BLOCK_SIZE-1)/threads.x,
 			(lb->ny+BLOCK_SIZE-1)/threads.y );
-	lb_relaxation_kernel<<< grid, threads, lb->stream >>>( lb->d_f[0],
+	lb_relaxation_kernel<<< grid, threads, 0, lb->stream >>>( lb->d_f[0],
 			lb->d_f[1], 
 		lb->d_f[2], lb->d_f[3], lb->d_f[4], lb->d_f[5], lb->d_f[6], 
 		lb->d_f[7], lb->d_f[8],
