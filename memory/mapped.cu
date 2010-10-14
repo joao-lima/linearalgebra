@@ -35,12 +35,16 @@ main(int argc, char** argv)
 		mem_size =  (1 << atoi(argv[1]));
 
 	unsigned int nelem= mem_size/sizeof(float);
+	int deviceCount;
+	cudaGetDeviceCount(&deviceCount);
+
+	for( int d= 0; d < deviceCount; d++ ) {
 	/* CUDA device flags: cudaDeviceScheduleAuto, cudaDeviceScheduleSpin,
 	   cudaDeviceScheduleYield, cudaDeviceBlockingSync, cudaDeviceMapHost
 	   */
 	unsigned int flags= cudaDeviceMapHost;
 	CUDA_SAFE_CALL( cudaSetDeviceFlags( flags ) );
-	cudaSetDevice( DEVICE );
+	cudaSetDevice( d );
 
 	/* CUDA flags:
 	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
@@ -81,6 +85,7 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
+	}
 
 	cudaThreadExit();
 }

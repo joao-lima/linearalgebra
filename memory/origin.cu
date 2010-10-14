@@ -35,7 +35,11 @@ main(int argc, char** argv)
 		mem_size =  (1 << atoi(argv[1]));
 	unsigned int nelem= mem_size/sizeof(float);
 
-	cudaSetDevice( DEVICE );
+	int deviceCount;
+	cudaGetDeviceCount(&deviceCount);
+
+	for( int d= 0; d < deviceCount; d++ ) {
+	cudaSetDevice( d );
 	// allocate host memory for matrices A and B
 	h_data= (float*)malloc( mem_size );
 	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
@@ -75,6 +79,7 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	free( h_data );
 	CUDA_SAFE_CALL( cudaFree( d_data ) );
+	}
 
 	cudaThreadExit();
 }
