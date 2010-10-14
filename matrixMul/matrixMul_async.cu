@@ -110,7 +110,7 @@ main(int argc, char** argv)
 		// copy result from device to host
 		CUDA_SAFE_CALL(cudaMemcpyAsync( h_C, d_C, mem_size_C,
 				      cudaMemcpyDeviceToHost, 0) );
-		//cudaStreamSynchronize(stream[0]);
+		cudaThreadSynchronize();
 	}
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
 	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));

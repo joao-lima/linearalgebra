@@ -109,11 +109,11 @@ main(int argc, char** argv)
 		matrixMul<<< grid, threads, 0, stream[i] >>>(d_C, d_A, d_B, WA,
 				WB);
 		// check if kernel execution generated and error
-		cutilCheckMsg("Kernel execution failed");
+		//cutilCheckMsg("Kernel execution failed");
 		// copy result from device to host
 		CUDA_SAFE_CALL(cudaMemcpyAsync( h_C, d_C, mem_size_C,
 				      cudaMemcpyDeviceToHost, stream[i]) );
-		//cudaStreamSynchronize(stream[0]);
+		cudaStreamSynchronize(stream[i]);
 	}
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
 	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));
