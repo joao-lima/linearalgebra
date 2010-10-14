@@ -14,9 +14,8 @@
 #include <string.h>
 #include <math.h>
 
-#include <cutil_inline.h>
-
 #include "add_kernel.cu"
+#include "cuda_safe.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Program main
@@ -27,7 +26,7 @@ main(int argc, char** argv)
 	unsigned int mem_size= (1 << 25);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
-	int i, j, max_iter= 10;
+	unsigned int i, j, max_iter= 10;
 	float *h_data, *d_data;
 #define NSTREAM		8
 	cudaStream_t stream[NSTREAM];
@@ -56,10 +55,10 @@ main(int argc, char** argv)
 	for( j= 0; j < NSTREAM; j++ )
 		cudaStreamCreate( &stream[j] );
 	// setup execution parameters
-	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( 128, 1);
+	//dim3 threads( BLOCK_SIZE, 1 );
+	//dim3 grid( 128, 1);
 	// number of elements per thread
-	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
+	//unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
 	unsigned int n_per_stream = nelem / NSTREAM;
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
@@ -71,7 +70,7 @@ main(int argc, char** argv)
 			cudaMemcpyHostToDevice, stream[j]) );
 		}
 		cudaThreadSynchronize();
-		add_one<<< grid, threads >>>( d_data, nblock );
+		//add_one<<< grid, threads >>>( d_data, nblock );
 		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
 				      cudaMemcpyDeviceToHost) );
 	}
@@ -80,11 +79,11 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "pinned_async size(MB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
-		mem_size/(1<<20), elapsed_time_in_Ms/(1e3f*max_iter),
+	fprintf( stdout, "pinned_async gpu= %d size(MB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1<<20), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 
-	if( check( h_data, 11e0f, nelem) == 0 )
+	if( check( h_data, 1e0f, nelem) == 0 )
 		fprintf( stdout, "test FAILED\n" );
 
 	// clean up memory

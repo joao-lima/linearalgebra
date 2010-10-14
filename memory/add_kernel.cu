@@ -9,6 +9,7 @@
 
 __global__ void add_one( float *data, unsigned int nblock )
 {
+#if 0
 	int index = (blockIdx.x*blockDim.x + threadIdx.x)*nblock;
 	int i;
 	float res;
@@ -18,12 +19,13 @@ __global__ void add_one( float *data, unsigned int nblock )
 		res = x + 1e0f;
 		data[index+i] = res;
 	}
+#endif
 }
 
 
 __host__ int check( const float *data, const float v, const unsigned int n )
 {
-	int i;
+	unsigned int i;
 
 	for( i= 0; i < n; i++ )
 		if( data[i] != v ){

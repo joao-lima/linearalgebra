@@ -1,9 +1,24 @@
+
 CXX := nvcc
 CC := nvcc
-CXXFLAGS := -O2 -D_REENTRANT -g \
-	-I$(HOME)/NVIDIA_GPU_Computing_SDK/C/common/inc
-LDFLAGS := $(HOME)/NVIDIA_GPU_Computing_SDK/C/lib/libcutil.a
-PROGS := origin pinned mapped pinned_wc mapped_wc pinned_async \
+# Warning flags
+CXXWARN_FLAGS := \
+	-W -Wall \
+	-Wimplicit \
+	-Wswitch \
+	-Wformat \
+	-Wchar-subscripts \
+	-Wparentheses \
+	-Wmultichar \
+	-Wtrigraphs \
+	-Wpointer-arith \
+	-Wcast-align \
+	-Wreturn-type \
+	-Wno-unused-function
+NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
+CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
+LDFLAGS :=
+PROGS := origin pinned pinned_wc pinned_async \
 	pinned_async2
 
 all: $(PROGS)
