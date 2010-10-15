@@ -2,7 +2,7 @@ CXX := nvcc
 CC := nvcc
 CXXFLAGS := -O3 -D_REENTRANT  \
 	-I$(HOME)/NVIDIA_GPU_Computing_SDK/C/common/inc
-LDFLAGS := #$(HOME)/NVIDIA_GPU_Computing_SDK/C/lib/libcutil.a
+LDFLAGS := $(HOME)/NVIDIA_GPU_Computing_SDK/C/lib/libcutil.a
 PROGS := matrixMul matrixMul_pinned matrixMul_mapped \
 	matrixMul_pinned_wc matrixMul_async matrixMul_async2 \
 	matrixMul_async3
