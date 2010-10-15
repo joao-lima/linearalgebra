@@ -59,9 +59,6 @@ main(int argc, char** argv)
 	CUBLAS_SAFE_CALL( cublasAlloc( size_A, sizeof(d_A[0]), (void**)&d_A) );
 	CUBLAS_SAFE_CALL( cublasAlloc( size_B, sizeof(d_B[0]), (void**)&d_B) );
 	CUBLAS_SAFE_CALL( cublasAlloc( size_C, sizeof(d_C[0]), (void**)&d_C) );
-	CUBLAS_SAFE_CALL( cublasSetVector( size_A, sizeof(h_A[0]), h_A, 1, d_A, 1 ) );
-	CUBLAS_SAFE_CALL( cublasSetVector( size_B, sizeof(h_B[0]), h_B, 1, d_B, 1 ) );
-	CUBLAS_SAFE_CALL( cublasSetVector( size_C, sizeof(h_C[0]), h_C, 1, d_C, 1 ) );
 
 	// events
 	cudaEvent_t e1, e2;
@@ -70,9 +67,17 @@ main(int argc, char** argv)
 
 	CUDA_SAFE_CALL(cudaEventRecord( e1, 0 ));
 	for( i= 0; i < max_iter; i++ ){
+		CUBLAS_SAFE_CALL( cublasSetVector( size_A, sizeof(h_A[0]), h_A,
+				       	1, d_A, 1 ) );
+		CUBLAS_SAFE_CALL( cublasSetVector( size_B, sizeof(h_B[0]), h_B,
+				       	1, d_B, 1 ) );
+		CUBLAS_SAFE_CALL( cublasSetVector( size_C, sizeof(h_C[0]), h_C,
+				       	1, d_C, 1 ) );
 		/* Performs operation using cublas */
 		cublasSgemm('n', 'n', N, N, N, alpha, d_A, N, d_B, N,
 				beta, d_C, N);
+		CUBLAS_SAFE_CALL( cublasGetVector( size_C, sizeof(h_C[0]), d_C,
+					1, h_C, 1) );
 		CUBLAS_SAFE_THREAD_SYNC();
 	}
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
@@ -128,22 +133,6 @@ void randomInit(float* data, int size)
 {
     for (int i = 0; i < size; ++i)
         data[i] = rand() / (float)RAND_MAX;
-}
-
-void printDiff(float *data1, float *data2, int width, int height)
-{
-  int i,j,k;
-  int error_count=0;
-  for (j=0; j<height; j++) {
-    for (i=0; i<width; i++) {
-      k = j*width+i;
-      if (data1[k] != data2[k]) {
-         printf("diff(%d,%d) CPU=%4.4f, GPU=%4.4f n", i,j, data1[k], data2[k]);
-         error_count++;
-      }
-    }
-  }
-  printf(" nTotal Errors = %d n", error_count);
 }
 
 /* Host implementation of a simple version of sgemm */
