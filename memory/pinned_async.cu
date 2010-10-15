@@ -55,10 +55,10 @@ main(int argc, char** argv)
 	for( j= 0; j < NSTREAM; j++ )
 		cudaStreamCreate( &stream[j] );
 	// setup execution parameters
-	//dim3 threads( BLOCK_SIZE, 1 );
-	//dim3 grid( 128, 1);
+	dim3 threads( BLOCK_SIZE, 1 );
+	dim3 grid( 128, 1);
 	// number of elements per thread
-	//unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
+	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
 	unsigned int n_per_stream = nelem / NSTREAM;
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
@@ -70,7 +70,7 @@ main(int argc, char** argv)
 			cudaMemcpyHostToDevice, stream[j]) );
 		}
 		cudaThreadSynchronize();
-		//add_one<<< grid, threads >>>( d_data, nblock );
+		add_one<<< grid, threads >>>( d_data, nblock );
 		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
 				      cudaMemcpyDeviceToHost) );
 	}

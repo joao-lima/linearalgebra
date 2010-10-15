@@ -52,16 +52,16 @@ main(int argc, char** argv)
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
 	// setup execution parameters
-	//dim3 threads( BLOCK_SIZE, 1 );
-	//dim3 grid( 128, 1);
+	dim3 threads( BLOCK_SIZE, 1 );
+	dim3 grid( 128, 1);
 	// number of elements per thread
-	//unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
+	unsigned int nblock = nelem/(BLOCK_SIZE*grid.x);
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
 		CUDA_SAFE_CALL( cudaMemcpy( d_data, h_data, mem_size,
 				      cudaMemcpyHostToDevice) );
-		//add_one<<< grid, threads >>>( d_data, nblock );
+		add_one<<< grid, threads >>>( d_data, nblock );
 		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
 				      cudaMemcpyDeviceToHost) );
 	}

@@ -12,12 +12,10 @@ __global__ void add_one( float *data, unsigned int nblock )
 #if 1
 	int index = (blockIdx.x*blockDim.x + threadIdx.x)*nblock;
 	int i;
-	float res;
 	float x;
 	for( i= 0; i < nblock; i++ ){
 		x= data[index+i];
-		res = x + 1e0f;
-		data[index+i] = res;
+		data[index+i] = x;
 	}
 #endif
 }

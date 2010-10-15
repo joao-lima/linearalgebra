@@ -55,11 +55,11 @@ main(int argc, char** argv)
 	for( j= 0; j < NSTREAM; j++ )
 		cudaStreamCreate( &stream[j] );
 	// setup execution parameters
-	//dim3 threads( BLOCK_SIZE, 1 );
-	//dim3 grid( 128, 1);
+	dim3 threads( BLOCK_SIZE, 1 );
+	dim3 grid( 128, 1);
 	// number of elements per thread
 	unsigned int n_per_stream = nelem / NSTREAM;
-	//unsigned int nblock = n_per_stream/(BLOCK_SIZE*grid.x);
+	unsigned int nblock = n_per_stream/(BLOCK_SIZE*grid.x);
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
@@ -68,8 +68,8 @@ main(int argc, char** argv)
 			h_data+j*n_per_stream,
 			n_per_stream*sizeof(float),
 			cudaMemcpyHostToDevice, stream[j]) );
-		//add_one<<< grid, threads, 0, stream[j] >>>(
-		//		d_data+j*n_per_stream, nblock );
+		add_one<<< grid, threads, 0, stream[j] >>>(
+				d_data+j*n_per_stream, nblock );
 		CUDA_SAFE_CALL( cudaMemcpyAsync( h_data+j*n_per_stream,
 					d_data+j*n_per_stream,
 					n_per_stream*sizeof(float),

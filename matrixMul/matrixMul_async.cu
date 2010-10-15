@@ -103,7 +103,7 @@ main(int argc, char** argv)
 		CUDA_SAFE_CALL(cudaMemcpyAsync(d_B, h_B, mem_size_B,
 				      cudaMemcpyHostToDevice, 0) );
 		// execute the kernel
-		matrixMul<<< grid, threads, 0 >>>(d_C, d_A, d_B, WA,
+		matrixMul<<< grid, threads, 0, 0 >>>(d_C, d_A, d_B, WA,
 				WB);
 		// check if kernel execution generated and error
 		cutilCheckMsg("Kernel execution failed");
