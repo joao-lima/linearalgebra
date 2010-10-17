@@ -49,7 +49,7 @@ main(int argc, char** argv)
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
 	float *h_A, *h_B, *h_C;
-	cudaStream_t stream[10];
+	cudaStream_t stream[2];
 
 	if( argc > 1 )
 		N = atoi( argv[1] );
@@ -81,7 +81,7 @@ main(int argc, char** argv)
 
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
-	for( i= 0; i < max_iter; i++ )
+	for( i= 0; i < 2; i++ )
 		cudaStreamCreate( &stream[i] );
 	// initialize host memory
 	randomInit(h_A, size_A);
@@ -102,18 +102,17 @@ main(int argc, char** argv)
 	for( i= 0; i < max_iter; i++ ){
 		// copy host memory to device
 		CUDA_SAFE_CALL( cudaMemcpyAsync(d_A, h_A, mem_size_A,
-				      cudaMemcpyHostToDevice, stream[i]) );
+				      cudaMemcpyHostToDevice, stream[0]) );
 		CUDA_SAFE_CALL(cudaMemcpyAsync(d_B, h_B, mem_size_B,
-				      cudaMemcpyHostToDevice, stream[i]) );
+				      cudaMemcpyHostToDevice, stream[1]) );
 		// execute the kernel
-		matrixMul<<< grid, threads, 0, stream[i] >>>(d_C, d_A, d_B, WA,
-				WB);
+		cudaThreadSynchronize();
+		matrixMul<<< grid, threads >>>(d_C, d_A, d_B, WA, WB);
 		// check if kernel execution generated and error
-		//cutilCheckMsg("Kernel execution failed");
+		cutilCheckMsg("Kernel execution failed");
 		// copy result from device to host
-		CUDA_SAFE_CALL(cudaMemcpyAsync( h_C, d_C, mem_size_C,
-				      cudaMemcpyDeviceToHost, stream[i]) );
-		cudaStreamSynchronize(stream[i]);
+		CUDA_SAFE_CALL(cudaMemcpy( h_C, d_C, mem_size_C,
+				      cudaMemcpyDeviceToHost) );
 	}
 	CUDA_SAFE_CALL(cudaEventRecord( e2, 0 ));
 	CUDA_SAFE_CALL(cudaEventSynchronize( e2 ));
