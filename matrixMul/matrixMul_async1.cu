@@ -119,8 +119,8 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL(cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ));
 	bandwidth_in_MBs= 1e3f * max_iter * (3.0f*N*N*sizeof(float)) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "async1 size= %d time(s)= %.3f bandwidth(MB/s)= %.1f\n",
-		N, elapsed_time_in_Ms/(1e3f*max_iter), bandwidth_in_MBs );
+	fprintf( stdout, "async1 size= %d time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		N, elapsed_time_in_Ms/(max_iter), bandwidth_in_MBs );
 
 
 	if( argc > 2 ){
