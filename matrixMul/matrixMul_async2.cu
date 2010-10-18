@@ -1,34 +1,10 @@
-/*
- * Copyright 1993-2009 NVIDIA Corporation.  All rights reserved.
- *
- * NVIDIA Corporation and its licensors retain all intellectual property and 
- * proprietary rights in and to this software and related documentation and 
- * any modifications thereto.  Any use, reproduction, disclosure, or distribution 
- * of this software and related documentation without an express license 
- * agreement from NVIDIA Corporation is strictly prohibited.
- * 
- */
-
-/* Matrix multiplication: C = A * B.
- * Host code.
- *
- * This sample implements matrix multiplication and is exactly the same as
- * Chapter 7 of the programming guide.
- * It has been written for clarity of exposition to illustrate various CUDA
- * programming principles, not with the goal of providing the most
- * performant generic kernel for matrix multiplication.
- *
- * CUBLAS provides high-performance matrix multiplication.
- */
-
 // includes, system
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
 
-#include <cutil_inline.h>
-
+#include "cuda_safe.h"
 // includes, kernels
 #include <matrixMul_kernel.cu>
 
@@ -109,7 +85,7 @@ main(int argc, char** argv)
 		cudaThreadSynchronize();
 		matrixMul<<< grid, threads >>>(d_C, d_A, d_B, WA, WB);
 		// check if kernel execution generated and error
-		cutilCheckMsg("Kernel execution failed");
+		//cutilCheckMsg("Kernel execution failed");
 		// copy result from device to host
 		CUDA_SAFE_CALL(cudaMemcpy( h_C, d_C, mem_size_C,
 				      cudaMemcpyDeviceToHost) );
@@ -124,15 +100,30 @@ main(int argc, char** argv)
 
 
 	if( argc > 2 ){
+		float error_norm;
+		float ref_norm;
+		float diff;
 		// compute reference solution
-		float* reference = (float*) malloc(mem_size_C);
-		computeGold(reference, h_A, h_B, HA, WA, WB);
+		float* h_C_ref= (float*) malloc(mem_size_C);
+		computeGold(h_C_ref, h_A, h_B, HA, WA, WB);
 
-		// check result
-		CUTBoolean res = cutCompareL2fe(reference, h_C, size_C, 1e-6f);
-		printf("Test %s \n", (1 == res) ? "PASSED" : "FAILED");
-		if (res!=1) printDiff(reference, h_C, WC, HC);
-		free(reference);
+		/* Check result against reference */
+		error_norm = 0;
+		ref_norm = 0;
+		for (i = 0; i < N; ++i) {
+			diff = h_C_ref[i] - h_C[i];
+			error_norm += diff * diff;
+			ref_norm += h_C_ref[i] * h_C_ref[i];
+		}
+		error_norm = (float)sqrt((double)error_norm);
+		ref_norm = (float)sqrt((double)ref_norm);
+		if (fabs(ref_norm) < 1e-7) {
+			fprintf (stderr, "!!!! reference norm is 0\n");
+			return EXIT_FAILURE;
+		}
+		printf( "Test %s\n",
+			(error_norm / ref_norm < 1e-6f) ? "PASSED" : "FAILED");
+		free(h_C_ref);
 	}
 
 	// clean up memory

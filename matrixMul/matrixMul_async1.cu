@@ -27,7 +27,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <cutil_inline.h>
+#include "cuda_safe.h"
 
 // includes, kernels
 #include <matrixMul_kernel.cu>
@@ -124,15 +124,30 @@ main(int argc, char** argv)
 
 
 	if( argc > 2 ){
+		float error_norm;
+		float ref_norm;
+		float diff;
 		// compute reference solution
-		float* reference = (float*) malloc(mem_size_C);
-		computeGold(reference, h_A, h_B, HA, WA, WB);
+		float* h_C_ref= (float*) malloc(mem_size_C);
+		computeGold(h_C_ref, h_A, h_B, HA, WA, WB);
 
-		// check result
-		CUTBoolean res = cutCompareL2fe(reference, h_C, size_C, 1e-6f);
-		printf("Test %s \n", (1 == res) ? "PASSED" : "FAILED");
-		if (res!=1) printDiff(reference, h_C, WC, HC);
-		free(reference);
+		/* Check result against reference */
+		error_norm = 0;
+		ref_norm = 0;
+		for (i = 0; i < N; ++i) {
+			diff = h_C_ref[i] - h_C[i];
+			error_norm += diff * diff;
+			ref_norm += h_C_ref[i] * h_C_ref[i];
+		}
+		error_norm = (float)sqrt((double)error_norm);
+		ref_norm = (float)sqrt((double)ref_norm);
+		if (fabs(ref_norm) < 1e-7) {
+			fprintf (stderr, "!!!! reference norm is 0\n");
+			return EXIT_FAILURE;
+		}
+		printf( "Test %s\n",
+			(error_norm / ref_norm < 1e-6f) ? "PASSED" : "FAILED");
+		free(h_C_ref);
 	}
 
 	// clean up memory

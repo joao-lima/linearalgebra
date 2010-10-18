@@ -26,9 +26,6 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	int i, max_iter= 10;
-	float error_norm;
-	float ref_norm;
-	float diff;
 
 	if( argc > 1 )
 		N = atoi( argv[1] );
@@ -95,6 +92,9 @@ main(int argc, char** argv)
 
 
 	if( argc > 2 ){
+		float error_norm;
+		float ref_norm;
+		float diff;
 		// compute reference solution
 		float* h_C_ref= (float*) malloc(mem_size_C);
 		computeGold(h_C_ref, h_A, h_B, HA, WA, WB);
