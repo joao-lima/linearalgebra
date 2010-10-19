@@ -28,7 +28,7 @@ main(int argc, char** argv)
 	float bandwidth_in_MBs= 0;
 	unsigned int i, j, max_iter= 10;
 	float *h_data, *d_data;
-#define NSTREAM		8
+#define NSTREAM		4
 	cudaStream_t stream[NSTREAM];
 
 	if( argc > 1 )
