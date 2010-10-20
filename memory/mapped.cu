@@ -15,8 +15,7 @@
 #include <string.h>
 #include <math.h>
 
-#include <cutil_inline.h>
-
+#include "cuda_safe.h"
 #include "add_kernel.cu"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +27,7 @@ main(int argc, char** argv)
 	unsigned int mem_size= (1 << 25);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
-	int i, max_iter= 10;
+	unsigned int i, max_iter= 10;
 	float *h_data, *d_data;
 
 	if( argc > 1 )
@@ -67,18 +66,19 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
 		add_one<<< grid, threads >>>( d_data, nblock );
-		cutilCheckMsg("Kernel execution failed");
+		//cutilCheckMsg("Kernel execution failed");
+		cudaThreadSynchronize();
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "mapped size(MB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
-		mem_size/(1 << 20), elapsed_time_in_Ms/(max_iter),
+	fprintf( stdout, "mapped size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		mem_size/(1 << 10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 
-	if( check( h_data, 11e0f, nelem) == 0 )
+	if( check( h_data, 1e0f, nelem) == 0 )
 		fprintf( stdout, "test FAILED\n" );
 
 	// clean up memory

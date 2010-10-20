@@ -19,7 +19,7 @@ NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS))
 CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
 LDFLAGS :=
 PROGS := origin pinned pinned_wc pinned_async \
-	pinned_async2
+	pinned_async2 mapped
 
 all: $(PROGS)
 
