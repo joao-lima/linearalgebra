@@ -1,3 +1,4 @@
+
 // includes, system
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,19 +54,22 @@ main(int argc, char** argv)
 			h_data+j*n_per_stream,
 			n_per_stream*sizeof(float),
 			cudaMemcpyHostToDevice, stream[j]) );
+		CUDA_SAFE_CALL( cudaMemcpyAsync( h_data+j*n_per_stream,
+					d_data+j*n_per_stream,
+					n_per_stream*sizeof(float),
+				      cudaMemcpyDeviceToHost, stream[j]) );
 		}
 		cudaThreadSynchronize();
-		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
-				      cudaMemcpyDeviceToHost) );
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "pinned_async1 gpu= %d size(MB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
-		d, mem_size/(1<<20), elapsed_time_in_Ms/(max_iter),
+	fprintf( stdout, "pinned_async1 gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
+	fflush(stdout);
 
 	if( check( h_data, 1e0f, nelem) == 0 )
 		fprintf( stdout, "test FAILED\n" );

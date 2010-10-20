@@ -54,12 +54,16 @@ main(int argc, char** argv)
 	cudaEventCreate( &e2 );
 	for( j= 0; j < NSTREAM; j++ )
 		cudaStreamCreate( &stream[j] );
+
 	// setup execution parameters
-	dim3 threads( BLOCK_SIZE, 1 );
-	dim3 grid( 128, 1);
-	// number of elements per thread
+	unsigned int xy_dim= sqrt(nelem);
+	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
+	dim3 grid( xy_dim/threads.x, xy_dim/threads.y );
+#ifdef _DEBUG
+	fprintf( stdout, "kernel threads(%d,%d) grid(%d,%d)\n",
+		threads.x, threads.y, grid.x, grid.y );
+#endif 
 	unsigned int n_per_stream = nelem / NSTREAM;
-	unsigned int nblock = n_per_stream/(BLOCK_SIZE*grid.x);
 
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
@@ -68,8 +72,8 @@ main(int argc, char** argv)
 			h_data+j*n_per_stream,
 			n_per_stream*sizeof(float),
 			cudaMemcpyHostToDevice, stream[j]) );
-		add_one<<< grid, threads, 0, stream[j] >>>(
-				d_data+j*n_per_stream, nblock );
+		kernel_offset<<< grid, threads, 0, stream[j] >>>(
+				d_data+j*n_per_stream, xy_dim );
 		CUDA_SAFE_CALL( cudaMemcpyAsync( h_data+j*n_per_stream,
 					d_data+j*n_per_stream,
 					n_per_stream*sizeof(float),
@@ -82,8 +86,8 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "pinned_async2 gpu= %d size(MB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
-		d, mem_size/(1<<20), elapsed_time_in_Ms/(max_iter),
+	fprintf( stdout, "pinned_async2 gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 	fflush(stdout);
 

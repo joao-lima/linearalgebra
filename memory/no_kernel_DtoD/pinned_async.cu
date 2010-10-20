@@ -17,8 +17,10 @@ main(int argc, char** argv)
 	unsigned int mem_size= (1 << 25);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
-	unsigned int i, max_iter= 10;
-	float *h_data, *d_data;
+	unsigned int i, j, max_iter= 10;
+	float *h_data, *d1_data, *d2_data;
+#define NSTREAM		4
+	cudaStream_t stream[NSTREAM];
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
@@ -32,31 +34,44 @@ main(int argc, char** argv)
 	/* CUDA flags:
 	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
 	cudaHostAllocWriteCombined */
-	unsigned int flags= cudaHostAllocWriteCombined;
+	unsigned int flags= cudaHostAllocDefault;
 	// allocate host memory for matrices A and B
 	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_data, mem_size, flags ) );
 	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
 	// allocate device memory
-	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMalloc((void**)&d1_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMalloc((void**)&d2_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMemcpy( d1_data, h_data, mem_size,
+			      cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaThreadSynchronize() );
+
 	cudaEvent_t e1, e2;
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
 
+	for( j= 0; j < NSTREAM; j++ )
+		cudaStreamCreate( &stream[j] );
+	unsigned int n_per_stream = nelem / NSTREAM;
+
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
-		CUDA_SAFE_CALL( cudaMemcpy( d_data, h_data, mem_size,
-				      cudaMemcpyHostToDevice) );
-		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
-				      cudaMemcpyDeviceToHost) );
+		for( j= 0; j < NSTREAM; j++ ){
+		CUDA_SAFE_CALL( cudaMemcpyAsync( d2_data+j*n_per_stream,
+			d1_data+j*n_per_stream,
+			n_per_stream*sizeof(float),
+			cudaMemcpyDeviceToDevice, stream[j]) );
+		}
+		cudaThreadSynchronize();
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
-	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
+	bandwidth_in_MBs= 1e3f * max_iter * mem_size / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "pinned_wc gpu= %d size(KB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
-		d, mem_size/(1<<10), elapsed_time_in_Ms/(1e3f*max_iter),
+	fprintf( stdout, "pinned_async1 gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
+	fflush(stdout);
 
 	if( check( h_data, 1e0f, nelem) == 0 )
 		fprintf( stdout, "test FAILED\n" );
@@ -65,7 +80,8 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
-	CUDA_SAFE_CALL( cudaFree( d_data ) );
+	CUDA_SAFE_CALL( cudaFree( d1_data ) );
+	CUDA_SAFE_CALL( cudaFree( d2_data ) );
 	}
 
 	cudaThreadExit();
