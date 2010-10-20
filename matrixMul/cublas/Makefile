@@ -16,32 +16,26 @@ CXXWARN_FLAGS := \
 	-Wreturn-type \
 	-Wno-unused-function
 NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
-CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
-LDFLAGS :=
-PROGS := origin pinned pinned_wc pinned_async \
-	pinned_async2 mapped
+CXXFLAGS := -O2 -D_REENTRANT  $(NVCCFLAGS) -g -D_DEBUG
+LDFLAGS := -lcublas
+PROGS := simpleCUBLAS cublas_sgemm cublas_sgemm_pinned \
+	cublas_sgemm_async1 cublas_sgemm_async2
 
 all: $(PROGS)
 
-origin: origin.cu
+simpleCUBLAS: simpleCUBLAS.c
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-pinned: pinned.cu
+cublas_sgemm: cublas_sgemm.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-pinned_wc: pinned_wc.cu
+cublas_sgemm_pinned: cublas_sgemm_pinned.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-mapped: mapped.cu
+cublas_sgemm_async1: cublas_sgemm_async1.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-mapped_wc: mapped_wc.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-pinned_async: pinned_async.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-pinned_async2: pinned_async2.cu
+cublas_sgemm_async2: cublas_sgemm_async2.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 clean:

@@ -18,30 +18,14 @@ CXXWARN_FLAGS := \
 NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
 CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
 LDFLAGS :=
-PROGS := origin pinned pinned_wc pinned_async \
-	pinned_async2 mapped
+PROGS := origin pinned_async
 
 all: $(PROGS)
 
 origin: origin.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
-pinned: pinned.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-pinned_wc: pinned_wc.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-mapped: mapped.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-mapped_wc: mapped_wc.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
 pinned_async: pinned_async.cu
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-pinned_async2: pinned_async2.cu
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 clean:

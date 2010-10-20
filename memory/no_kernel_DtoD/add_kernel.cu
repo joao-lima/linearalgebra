@@ -7,15 +7,15 @@
 #define DEVICE	0
 #endif
 
-__global__ void kernel_offset( float *data, const unsigned int N )
+__global__ void add_one( float *data, unsigned int nblock )
 {
-#if 1
-	int x = blockIdx.x*blockDim.x + threadIdx.x;
-	int y = blockIdx.y*blockDim.y + threadIdx.y;
-	float a= 0e0f;
-	if( (x < N) && (y < N) ) {
-		a= data[y*N+x];
-		data[y*N+x]= a;
+#if 0
+	int index = (blockIdx.x*blockDim.x + threadIdx.x)*nblock;
+	int i;
+	float x;
+	for( i= 0; i < nblock; i++ ){
+		x= data[index+i];
+		data[index+i] = x;
 	}
 #endif
 }

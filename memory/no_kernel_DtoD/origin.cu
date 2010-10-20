@@ -1,13 +1,3 @@
-/*
- * Copyright 1993-2009 NVIDIA Corporation.  All rights reserved.
- *
- * NVIDIA Corporation and its licensors retain all intellectual property and 
- * proprietary rights in and to this software and related documentation and 
- * any modifications thereto.  Any use, reproduction, disclosure, or distribution 
- * of this software and related documentation without an express license 
- * agreement from NVIDIA Corporation is strictly prohibited.
- * 
- */
 
 // includes, system
 #include <stdlib.h>
@@ -28,7 +18,7 @@ main(int argc, char** argv)
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	unsigned int i, max_iter= 10;
-	float *h_data, *d_data;
+	float *h_data, *d1_data, *d2_data;
 
 	if( argc > 1 )
 		mem_size =  (1 << atoi(argv[1]));
@@ -43,33 +33,24 @@ main(int argc, char** argv)
 	h_data= (float*)malloc( mem_size );
 	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
 	// allocate device memory
-	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMalloc((void**)&d1_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMalloc((void**)&d2_data, mem_size) );
+	CUDA_SAFE_CALL( cudaMemcpy( d1_data, h_data, mem_size,
+			      cudaMemcpyHostToDevice) );
+	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 	cudaEvent_t e1, e2;
 	cudaEventCreate( &e1 );
 	cudaEventCreate( &e2 );
 
-	// setup execution parameters
-	unsigned int xy_dim= sqrt(nelem);
-	dim3 threads( BLOCK_SIZE, BLOCK_SIZE );
-	dim3 grid( xy_dim/threads.x, xy_dim/threads.y );
-#ifdef _DEBUG
-	fprintf( stdout, "kernel threads(%d,%d) grid(%d,%d)\n",
-		threads.x, threads.y, grid.x, grid.y );
-#endif 
-
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
-		CUDA_SAFE_CALL( cudaMemcpy( d_data, h_data, mem_size,
-				      cudaMemcpyHostToDevice) );
-		kernel_offset<<< grid, threads >>>( d_data, xy_dim );
-		CUDA_SAFE_CALL( cudaMemcpy( h_data, d_data, mem_size,
-				      cudaMemcpyDeviceToHost) );
+		CUDA_SAFE_CALL( cudaMemcpy( d2_data, d1_data, mem_size,
+				      cudaMemcpyDeviceToDevice) );
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
-
-	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
+	bandwidth_in_MBs= 1e3f * max_iter * mem_size / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "naive gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
 		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
@@ -82,7 +63,8 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventDestroy( e1 ) );
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	free( h_data );
-	CUDA_SAFE_CALL( cudaFree( d_data ) );
+	CUDA_SAFE_CALL( cudaFree( d1_data ) );
+	CUDA_SAFE_CALL( cudaFree( d2_data ) );
 	}
 
 	cudaThreadExit();
