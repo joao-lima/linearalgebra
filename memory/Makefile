@@ -16,7 +16,7 @@ CXXWARN_FLAGS := \
 	-Wreturn-type \
 	-Wno-unused-function
 NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
-CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
+CXXFLAGS := -O2 -D_REENTRANT -D_DEBUG -g $(NVCCFLAGS)
 LDFLAGS :=
 PROGS := origin pinned pinned_wc pinned_async \
 	pinned_async2 mapped

@@ -24,11 +24,7 @@ main(int argc, char** argv)
 		mem_size =  (1 << atoi(argv[1]));
 
 	unsigned int nelem= mem_size/sizeof(float);
-	int deviceCount;
-	cudaGetDeviceCount(&deviceCount);
-
-	for( int d= 0; d < deviceCount; d++ ) {
-	cudaSetDevice( d );
+	cudaSetDevice( DEVICE );
 	/* CUDA flags:
 	cudaHostAllocDefault, cudaHostAllocPortable, cudaHostAllocMapped,
 	cudaHostAllocWriteCombined */
@@ -55,7 +51,7 @@ main(int argc, char** argv)
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "pinned_wc gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
-		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
+		DEVICE, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 
 	if( check( h_data, 1e0f, nelem) == 0 )
@@ -66,7 +62,6 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventDestroy( e2 ) );
 	CUDA_SAFE_CALL( cudaFreeHost( h_data ) );
 	CUDA_SAFE_CALL( cudaFree( d_data ) );
-	}
 
 	cudaThreadExit();
 }
