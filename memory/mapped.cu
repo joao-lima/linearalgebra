@@ -70,7 +70,7 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaEventRecord( e1, 0 ) );
 	for( i= 0; i < max_iter; i++ ){
 		kernel_offset<<< grid, threads >>>( d_data, xy_dim );
-		cudaThreadSynchronize();
+		CUDA_SAFE_CALL( cudaThreadSynchronize() );
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
@@ -78,8 +78,8 @@ main(int argc, char** argv)
 
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "mapped size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
-		mem_size/(1 << 10), elapsed_time_in_Ms/(max_iter),
+	fprintf( stdout, "mapped gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1 << 10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 
 	if( check( h_data, 1e0f, nelem) == 0 )

@@ -1,13 +1,3 @@
-/*
- * Copyright 1993-2009 NVIDIA Corporation.  All rights reserved.
- *
- * NVIDIA Corporation and its licensors retain all intellectual property and 
- * proprietary rights in and to this software and related documentation and 
- * any modifications thereto.  Any use, reproduction, disclosure, or distribution 
- * of this software and related documentation without an express license 
- * agreement from NVIDIA Corporation is strictly prohibited.
- * 
- */
 
 // includes, system
 #include <stdlib.h>
@@ -75,8 +65,8 @@ main(int argc, char** argv)
 
 	bandwidth_in_MBs= 1e3f * max_iter * (mem_size * 2.0f) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
-	fprintf( stdout, "pinned_wc gpu= %d size(KB)= %9u time(s)= %.3f bandwidth(MB/s)= %.1f\n",
-		d, mem_size/(1<<10), elapsed_time_in_Ms/(1e3f*max_iter),
+	fprintf( stdout, "pinned_wc gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
+		d, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),
 	       	bandwidth_in_MBs );
 
 	if( check( h_data, 1e0f, nelem) == 0 )
