@@ -16,7 +16,11 @@ CXXWARN_FLAGS := \
 	-Wreturn-type \
 	-Wno-unused-function
 NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
-CXXFLAGS := -O2 -D_REENTRANT -g $(NVCCFLAGS)
+CXXFLAGS := -O2 -D_REENTRANT
+ifeq ($(DEBUG),1)
+	CXXFLAGS += -D_DEBUG -g $(NVCCFLAGS)
+endif
+
 LDFLAGS :=
 PROGS := origin pinned pinned_wc pinned_async
 
