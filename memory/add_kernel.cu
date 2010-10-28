@@ -13,7 +13,7 @@ __global__ void kernel_offset( float *data, const unsigned int N )
 #if 1
 	int x = blockIdx.x*blockDim.x + threadIdx.x;
 	int y = blockIdx.y*blockDim.y + threadIdx.y;
-	float a= 0e0f;
+	float a= 0.0f;
 	if( (x < N) && (y < N) ) {
 		a= data[y*N+x];
 		data[y*N+x]= a;
