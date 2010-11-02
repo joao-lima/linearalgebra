@@ -14,7 +14,7 @@
 int
 main(int argc, char** argv)
 {
-	unsigned int mem_size= (1 << 25);
+	unsigned int mem_size= (1 << 20);
 	float elapsed_time_in_Ms= 0;
 	float bandwidth_in_MBs= 0;
 	unsigned int i, max_iter= 10;
@@ -28,6 +28,7 @@ main(int argc, char** argv)
 	// allocate host memory for matrices A and B
 	h_data= (float*)malloc( mem_size );
 	for( i= 0; i < nelem; i++) h_data[i]= 1e0f;
+
 	// allocate device memory
 	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data, mem_size) );
 	cudaEvent_t e1, e2;
@@ -40,9 +41,10 @@ main(int argc, char** argv)
 				      cudaMemcpyHostToDevice) );
 	}
 	CUDA_SAFE_CALL( cudaEventRecord( e2, 0 ) );
+	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 	CUDA_SAFE_CALL( cudaEventSynchronize( e2 ) );
 	CUDA_SAFE_CALL( cudaEventElapsedTime( &elapsed_time_in_Ms, e1, e2 ) );
-	bandwidth_in_MBs= 1e3f * max_iter * mem_size / 
+	bandwidth_in_MBs= (1e3f * max_iter * mem_size) / 
 	       	(elapsed_time_in_Ms * (float)(1 << 20));
 	fprintf( stdout, "naive gpu= %d size(KB)= %9u time(ms)= %.3f bandwidth(MB/s)= %.1f\n",
 		DEVICE, mem_size/(1<<10), elapsed_time_in_Ms/(max_iter),

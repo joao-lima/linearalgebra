@@ -29,7 +29,7 @@ int main( int argc, char *argv[] )
 	unsigned int nelem;
 	unsigned int g;
 	int i;
-	unsigned int max_iter= 100;
+	unsigned int max_iter= 10;
 	struct foo_test *gpu_info;
 	
 	if( argc > 1 )
@@ -78,14 +78,15 @@ void *foo_thread_func(void *v)
 	unsigned int flags;
 	unsigned int i;
 
+#if 0
 	fprintf( stdout, "foo_thread_func device=%d\n", info->device );
 	fflush(stdout);
+#endif
 	flags= 0;
 	CU_SAFE_CALL( cuDeviceGet( &cuDevice, info->device ) );
 	CU_SAFE_CALL( cuCtxCreate( &cuContext, flags, cuDevice ) );
 	CU_SAFE_CALL( cuEventCreate( &e1, 0 ) );
 	CU_SAFE_CALL( cuEventCreate( &e2, 0 ) );
-	//CU_SAFE_CALL( cuCtxSynchronize() );
 
 	h_data= (float*) malloc( info->mem_size );
 	CU_SAFE_CALL( cuMemAlloc( &d_data, info->mem_size ) );
@@ -97,6 +98,7 @@ void *foo_thread_func(void *v)
 	CU_SAFE_CALL( cuEventRecord( e1, 0 ) );
 	for( i= 0; i < info->max_iter; i++ )
 		CU_SAFE_CALL( cuMemcpyHtoD( d_data, h_data, info->mem_size ) );
+	//CU_SAFE_CALL( cuCtxSynchronize() );
 	CU_SAFE_CALL( cuEventRecord( e2, 0 ) );
 	CU_SAFE_CALL( cuEventSynchronize( e2 ) );
 

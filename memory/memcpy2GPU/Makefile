@@ -1,6 +1,6 @@
 
 CC := gcc
-CFLAGS := -Wall -O2 -I/usr/local/cuda/include
+CFLAGS := -D_REENTRANT -Wall -O2 -I/usr/local/cuda/include
 ifeq ($(DEBUG),1)
 	CFLAGS += -D_DEBUG -D_CUDA_DEBUG -g 
 endif

@@ -16,7 +16,7 @@ CXXWARN_FLAGS := \
 	-Wreturn-type \
 	-Wno-unused-function
 NVCCFLAGS += $(addprefix --compiler-options ,$(CXXWARN_FLAGS)) 
-CXXFLAGS := -O2 -D_REENTRANT
+CXXFLAGS := -O2 -D_REENTRANT -DDEVICE=0
 ifeq ($(DEBUG),1)
 	CXXFLAGS += -D_DEBUG -g $(NVCCFLAGS)
 endif
