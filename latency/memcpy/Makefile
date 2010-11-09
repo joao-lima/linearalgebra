@@ -6,12 +6,15 @@ ifeq ($(DEBUG),1)
 endif
 LDFLAGS := -pthread -lcuda
 
-PROGS := memcpy_HtoD memcpy_HtoD_pinned
+PROGS := memcpy_HtoD memcpy_HtoD_pinned \
+	memcpy_DtoH memcpy_DtoH_pinned
 
 all: $(PROGS)
 
 memcpy_HtoD: memcpy_HtoD.c
 memcpy_HtoD_pinned: memcpy_HtoD_pinned.c
+memcpy_DtoH: memcpy_DtoH.c
+memcpy_DtoH_pinned: memcpy_DtoH_pinned.c
 
 clean:
 	rm -f *.o $(PROGS)

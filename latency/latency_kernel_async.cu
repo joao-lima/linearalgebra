@@ -183,7 +183,7 @@ main(int argc, char** argv)
 	unsigned int *h, *d;
 	struct timeval ek0, ek1, t0, t1, t2, t3;
 	float time1_0, time2_0, time3_0, tk;
-	int max_iter=1000;
+	int max_work=1000;
 	// from (1<<mem_min) to (1<<mem_max)
 	unsigned int mem_min= 10, mem_max= 30;
 	unsigned int mem_size;
@@ -198,12 +198,12 @@ main(int argc, char** argv)
 	cudaStreamCreate( &stream1 );
 
 	cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
-	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_iter);
+	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_work);
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
 	gettimeofday( &ek0, 0 );
 	for( j= 0; j < nmax; j++ ){
-	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_iter);
+	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_work);
 	}
 	cudaThreadSynchronize();
 	gettimeofday( &ek1, 0 );
@@ -213,12 +213,12 @@ main(int argc, char** argv)
 
 	for( i= mem_min; i <= mem_max; i++ ) {
 		mem_size= (1<<i);
-		for( j= 0; j < 10; j++ )
+		for( j= 0; j < 2; j++ )
 			cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
 
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
-		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK, 0, stream1>>>(max_iter);
+		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK, 0, stream1>>>(max_work);
 		gettimeofday( &t1, 0 );
 		cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
 		gettimeofday( &t2, 0 );

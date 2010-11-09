@@ -70,6 +70,7 @@ void foo_func(struct foo_test *info)
 	h_data= (float*) malloc( info->mem_size );
 	CU_SAFE_CALL( cuMemAlloc( &d_data, info->mem_size ) );
 	for( i= 0; i < info->nelem; i++) h_data[i]= 1.0f;
+	CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, info->mem_size ));
 
 	fprintf( stdout, "# max memory(MB)= %ld\n", info->mem_size/(1<<20) );
 	fprintf( stdout, "# size(B)  time(us)\n" );
@@ -78,12 +79,12 @@ void foo_func(struct foo_test *info)
 	mem_size= 0;
 	do {
 		for( i= 0; i < 2; i++ )
-			CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, mem_size ));
+			CU_SAFE_CALL(cuMemcpyDtoH( h_data, d_data, mem_size ));
 		CU_SAFE_CALL( cuCtxSynchronize() );
 
 		gettimeofday( &t0, 0 );
 		for( i= 0; i < info->max_iter; i++ )
-			CU_SAFE_CALL( cuMemcpyHtoD( d_data, h_data, mem_size ));
+			CU_SAFE_CALL( cuMemcpyDtoH( h_data, d_data, mem_size ));
 		CU_SAFE_CALL( cuCtxSynchronize() );
 		gettimeofday( &t1, 0 );
 		time_in_us= (t1.tv_sec-t0.tv_sec)*1e6+(t1.tv_usec-t0.tv_usec);

@@ -10,236 +10,101 @@
 #endif
 
 #include "cuda_safe.h"
-
-#define NUM_SMS (24)
-#define NUM_THREADS_PER_SM (384)
-#define NUM_THREADS_PER_BLOCK (192)
-#define NUM_BLOCKS ((NUM_THREADS_PER_SM / NUM_THREADS_PER_BLOCK) * NUM_SMS)
-#define NUM_ITERATIONS 99999
- 
-// 128 MAD instructions
-#define FMAD128(a, b) \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
-     a = b * a + b; \
-     b = a * b + a; \
- 
-__shared__ float result[NUM_THREADS_PER_BLOCK];
- 
-__global__ void gflops(unsigned int n)
-{
-   float a = result[threadIdx.x];  // this ensures the mads don't get compiled out
-   float b = 1.01f;
- 
-   for (int i = 0; i < n; i++)
-   {
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-       FMAD128(a, b);
-   }
-   result[threadIdx.x] = a + b;
-}
+#include "kernel_clock_timed.cu"
  
 int
 main(int argc, char** argv)
 {
+	clock_t *d_timer, *h_timer;
 	unsigned int *h, *d;
 	struct timeval ek0, ek1, t0, t1, t2, t3;
 	float time1_0, time2_0, time3_0, tk;
-	int max_iter=1;
-	// from (1<<mem_min) to (1<<mem_max)
-	unsigned int mem_min= 1, mem_max= 30;
-	unsigned int mem_size;
+	float k_time;
+	int n_k_time;
+	int max_work=1;
+	unsigned int mem_min= 0, mem_max= 30;
+	unsigned long mem_size, mem_size_clock, shared_mem_size;
 	int i, j, nmax=100;
+	unsigned int sm= 1, thread= 1;
 	cudaStream_t stream1, stream2;
+        cudaDeviceProp deviceProp;
+	float kernel_work= 1.0f;
+
+	if( argc > 1 )
+		mem_max= atoi(argv[1]);
 
 	CUDA_SAFE_CALL( cudaSetDevice(DEVICE) );
-	mem_size= (1<<mem_max);
+	mem_size= powl(2, mem_max);
+	shared_mem_size= thread * sizeof(float);
 	CUDA_SAFE_CALL( cudaHostAlloc( &h, mem_size, cudaHostAllocDefault ) );
-	//h= (unsigned int *) malloc(mem_size);
 	for( i= 0; i < mem_size/sizeof(unsigned int); i++ ) h[i]= 1;
 	cudaMalloc( (void**)&d, mem_size );
 	cudaStreamCreate( &stream1 );
 	cudaStreamCreate( &stream2 );
 
+	mem_size_clock= sizeof(clock_t) * 2;
+	//h_timer= (clock_t *) malloc(mem_size_clock);
+	CUDA_SAFE_CALL( cudaHostAlloc( &h_timer, mem_size_clock,
+				cudaHostAllocDefault ) );
+	cudaMalloc( (void**)&d_timer, mem_size_clock );
+        cudaGetDeviceProperties(&deviceProp, DEVICE);
+
 	cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
-	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_iter);
+	gflops<<<sm, thread, shared_mem_size, 0>>>(max_work, kernel_work, d_timer);
+	CUDA_SAFE_THREAD_SYNC();
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
 	gettimeofday( &ek0, 0 );
 	for( j= 0; j < nmax; j++ ){
-	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(max_iter);
+	gflops<<<sm, thread, shared_mem_size, 0>>>(max_work, kernel_work, d_timer);
+	CUDA_SAFE_THREAD_SYNC();
 	}
 	cudaThreadSynchronize();
 	gettimeofday( &ek1, 0 );
 	tk= ((ek1.tv_sec-ek0.tv_sec)*1e6+(ek1.tv_usec-ek0.tv_usec))/nmax;
-	fprintf( stdout, "kernel time= %f\n", tk );
+	fprintf( stdout, "# kernel time= %f\n", tk );
+	fprintf( stdout, "# size(B) t1-t0 t2-t0 t3-t0 time_kernel\n" );
 	fflush(stdout);
 
 	for( i= mem_min; i <= mem_max; i++ ) {
-		mem_size= (1<<i);
-		for( j= 0; j < 10; j++ )
+		mem_size= powl(2, i);
+		time1_0= time2_0= time3_0= k_time= 0;
+		n_k_time= 0;
+		for( j= 0; j < 2; j++ )
 			cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
 
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
-		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK, 0, stream1>>>(max_iter);
+		gflops<<<sm, thread, shared_mem_size, stream1>>>(max_work, kernel_work, d_timer);
+		CUDA_SAFE_THREAD_SYNC();
 		gettimeofday( &t1, 0 );
 		CUDA_SAFE_CALL( cudaMemcpyAsync( d, h, mem_size, cudaMemcpyHostToDevice, stream2 ) );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream2) );
 		gettimeofday( &t2, 0 );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream1) );
-		//CUDA_SAFE_CALL( cudaThreadSynchronize() );
 		gettimeofday( &t3, 0 );
 		time1_0+= (t1.tv_sec-t0.tv_sec)*1e6+(t1.tv_usec-t0.tv_usec);
 		time2_0+= (t2.tv_sec-t0.tv_sec)*1e6+(t2.tv_usec-t0.tv_usec);
 		time3_0+= (t3.tv_sec-t0.tv_sec)*1e6+(t3.tv_usec-t0.tv_usec);
+		CUDA_SAFE_CALL( cudaMemcpy( h_timer, d_timer, mem_size_clock,
+			       	cudaMemcpyDeviceToHost) );
+		if( (h_timer[1]-h_timer[0]) > 0 ){
+			k_time+= (h_timer[1]-h_timer[0])/(deviceProp.clockRate*1e3f);
+			n_k_time++;
+		}
 		}
 		time1_0= time1_0/nmax;
 		time2_0= time2_0/nmax;
 		time3_0= time3_0/nmax;
-		fprintf( stdout, "%10u %10.2f %10.2f %10.2f\n", mem_size,
-			time1_0, time2_0, time3_0 );
+		k_time= (k_time / n_k_time) * 1e6;
+		fprintf( stdout, "%10u %10.2f %10.2f %10.2f %10.2f\n",
+			mem_size,
+			time1_0, time2_0, time3_0, k_time );
 		fflush(stdout);
 	}
 	cudaFreeHost( h );
 	cudaFree( d );
+	cudaFreeHost( h_timer );
+	cudaFree( d_timer );
 	cudaThreadExit();
 }

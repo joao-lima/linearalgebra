@@ -67,9 +67,10 @@ void foo_func(struct foo_test *info)
 	CU_SAFE_CALL( cuDeviceGet( &cuDevice, info->device ) );
 	CU_SAFE_CALL( cuCtxCreate( &cuContext, flags, cuDevice ) );
 
-	h_data= (float*) malloc( info->mem_size );
+	CU_SAFE_CALL( cuMemAllocHost( (void**)&h_data, info->mem_size ) );
 	CU_SAFE_CALL( cuMemAlloc( &d_data, info->mem_size ) );
 	for( i= 0; i < info->nelem; i++) h_data[i]= 1.0f;
+	CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, info->mem_size ));
 
 	fprintf( stdout, "# max memory(MB)= %ld\n", info->mem_size/(1<<20) );
 	fprintf( stdout, "# size(B)  time(us)\n" );
@@ -77,13 +78,13 @@ void foo_func(struct foo_test *info)
 	s= 1;
 	mem_size= 0;
 	do {
-		for( i= 0; i < 2; i++ )
-			CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, mem_size ));
+		for( i= 0; i < 10; i++ )
+			CU_SAFE_CALL(cuMemcpyDtoH( h_data, d_data, mem_size ));
 		CU_SAFE_CALL( cuCtxSynchronize() );
 
 		gettimeofday( &t0, 0 );
 		for( i= 0; i < info->max_iter; i++ )
-			CU_SAFE_CALL( cuMemcpyHtoD( d_data, h_data, mem_size ));
+			CU_SAFE_CALL( cuMemcpyDtoH( h_data, d_data, mem_size ));
 		CU_SAFE_CALL( cuCtxSynchronize() );
 		gettimeofday( &t1, 0 );
 		time_in_us= (t1.tv_sec-t0.tv_sec)*1e6+(t1.tv_usec-t0.tv_usec);
@@ -94,7 +95,7 @@ void foo_func(struct foo_test *info)
 	} while( mem_size <= info->mem_size );
 
 	CU_SAFE_CALL( cuMemFree( d_data ) );
+	CU_SAFE_CALL( cuMemFreeHost( h_data ) );
 	CU_SAFE_CALL( cuCtxDetach( cuContext ) );
-	free( h_data );
 }
 
