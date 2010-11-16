@@ -15,18 +15,18 @@
 int
 main(int argc, char** argv)
 {
+	clock_t *d_timer, *h_timer;
 	unsigned int *h, *d;
 	struct timeval ek0, ek1, t0, t1, t2, t3;
 	float time1_0, time2_0, time3_0, tk;
-	int max_work=1;
-	unsigned int mem_min= 0, mem_max= 30;
 	float k_time;
 	int n_k_time;
+	int max_work=1024;
+	unsigned int mem_min= 0, mem_max= 30;
 	unsigned long mem_size, mem_size_clock, shared_mem_size;
 	int i, j, nmax=100;
-        cudaDeviceProp deviceProp;
 	unsigned int sm= 1, thread= 1;
-	clock_t *d_timer, *h_timer;
+        cudaDeviceProp deviceProp;
 	float kernel_work= 1.0f;
 
 	if( argc > 1 )
@@ -35,22 +35,25 @@ main(int argc, char** argv)
 	CUDA_SAFE_CALL( cudaSetDevice(DEVICE) );
 	mem_size= powl(2, mem_max);
 	shared_mem_size= thread * sizeof(float);
-	h= (unsigned int *) malloc(mem_size);
+	CUDA_SAFE_CALL( cudaHostAlloc( &h, mem_size, cudaHostAllocDefault ) );
 	for( i= 0; i < mem_size/sizeof(unsigned int); i++ ) h[i]= 1;
 	cudaMalloc( (void**)&d, mem_size );
 
 	mem_size_clock= sizeof(clock_t) * 2;
-	h_timer= (clock_t *) malloc(mem_size_clock);
+	CUDA_SAFE_CALL( cudaHostAlloc( &h_timer, mem_size_clock,
+				cudaHostAllocDefault ) );
 	cudaMalloc( (void**)&d_timer, mem_size_clock );
         cudaGetDeviceProperties(&deviceProp, DEVICE);
 
 	cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
 	gflops<<<sm, thread, shared_mem_size, 0>>>(max_work, kernel_work, d_timer);
+	CUDA_SAFE_THREAD_SYNC();
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
 	gettimeofday( &ek0, 0 );
 	for( j= 0; j < nmax; j++ ){
 	gflops<<<sm, thread, shared_mem_size, 0>>>(max_work, kernel_work, d_timer);
+	CUDA_SAFE_THREAD_SYNC();
 	}
 	cudaThreadSynchronize();
 	gettimeofday( &ek1, 0 );
@@ -69,10 +72,12 @@ main(int argc, char** argv)
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
 		gflops<<<sm, thread, shared_mem_size, 0>>>(max_work, kernel_work, d_timer);
+		CUDA_SAFE_THREAD_SYNC();
 		gettimeofday( &t1, 0 );
-		cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
+		CUDA_SAFE_CALL( cudaMemcpy( d, h, mem_size,
+					cudaMemcpyHostToDevice ) );
 		gettimeofday( &t2, 0 );
-		cudaThreadSynchronize();
+		CUDA_SAFE_CALL( cudaThreadSynchronize() );
 		gettimeofday( &t3, 0 );
 		time1_0+= (t1.tv_sec-t0.tv_sec)*1e6+(t1.tv_usec-t0.tv_usec);
 		time2_0+= (t2.tv_sec-t0.tv_sec)*1e6+(t2.tv_usec-t0.tv_usec);
@@ -93,9 +98,9 @@ main(int argc, char** argv)
 			time1_0, time2_0, time3_0, k_time );
 		fflush(stdout);
 	}
-	free( h );
+	cudaFreeHost( h );
 	cudaFree( d );
-	free( h_timer );
+	cudaFreeHost( h_timer );
 	cudaFree( d_timer );
 	cudaThreadExit();
 }
