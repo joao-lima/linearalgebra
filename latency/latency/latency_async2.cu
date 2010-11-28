@@ -21,7 +21,7 @@ main(int argc, char** argv)
 	float time1_0, time2_0, time3_0, tk;
 	float k_time;
 	int n_k_time;
-	int max_work=1024;
+	int max_work=2048;
 	unsigned int mem_min= 64, mem_max= 512;
 	unsigned long mem_size, mem_size_clock, shared_mem_size;
 	int i, j, nmax=100;
