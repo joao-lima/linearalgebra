@@ -1,4 +1,39 @@
 /*
+* Copyright 1993-2007 NVIDIA Corporation.  All rights reserved.
+*
+* NOTICE TO USER:
+*
+* This source code is subject to NVIDIA ownership rights under U.S. and
+* international Copyright laws.  Users and possessors of this source code
+* are hereby granted a nonexclusive, royalty-free license to use this code
+* in individual and commercial software.
+*
+* NVIDIA MAKES NO REPRESENTATION ABOUT THE SUITABILITY OF THIS SOURCE
+* CODE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
+* IMPLIED WARRANTY OF ANY KIND.  NVIDIA DISCLAIMS ALL WARRANTIES WITH
+* REGARD TO THIS SOURCE CODE, INCLUDING ALL IMPLIED WARRANTIES OF
+* MERCHANTABILITY, NONINFRINGEMENT, AND FITNESS FOR A PARTICULAR PURPOSE.
+* IN NO EVENT SHALL NVIDIA BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL,
+* OR CONSEQUENTIAL DAMAGES, OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+* OF USE, DATA OR PROFITS,  WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+* OR OTHER TORTIOUS ACTION,  ARISING OUT OF OR IN CONNECTION WITH THE USE
+* OR PERFORMANCE OF THIS SOURCE CODE.
+*
+* U.S. Government End Users.   This source code is a "commercial item" as
+* that term is defined at  48 C.F.R. 2.101 (OCT 1995), consisting  of
+* "commercial computer  software"  and "commercial computer software
+* documentation" as such terms are  used in 48 C.F.R. 12.212 (SEPT 1995)
+* and is provided to the U.S. Government only as a commercial end item.
+* Consistent with 48 C.F.R.12.212 and 48 C.F.R. 227.7202-1 through
+* 227.7202-4 (JUNE 1995), all U.S. Government End Users acquire the
+* source code with only those rights set forth herein.
+*
+* Any use of this source code in individual and commercial software must
+* include, in the user documentation and internal comments to the code,
+* the above Disclaimer and U.S. Government End Users Notice.
+*/
+ 
+/*
    This sample is intended to measure the peak computation rate of the GPU in GFLOPs
    (giga floating point operations per second).
  
@@ -14,19 +49,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <sys/time.h>
  
-#ifndef DEVICE
-#define DEVICE 0
-#endif
-
-#include "cuda_safe.h"
-
+#include <cutil.h>
+ 
 #define NUM_SMS (24)
 #define NUM_THREADS_PER_SM (384)
 #define NUM_THREADS_PER_BLOCK (192)
 #define NUM_BLOCKS ((NUM_THREADS_PER_SM / NUM_THREADS_PER_BLOCK) * NUM_SMS)
-#define NUM_ITERATIONS 99999
+#define NUM_ITERATIONS 32
  
 // 128 MAD instructions
 #define FMAD128(a, b) \
@@ -161,12 +191,12 @@
  
 __shared__ float result[NUM_THREADS_PER_BLOCK];
  
-__global__ void gflops(unsigned int n)
+__global__ void gflops()
 {
    float a = result[threadIdx.x];  // this ensures the mads don't get compiled out
    float b = 1.01f;
  
-   for (int i = 0; i < n; i++)
+   for (int i = 0; i < NUM_ITERATIONS; i++)
    {
        FMAD128(a, b);
        FMAD128(a, b);
@@ -191,77 +221,28 @@ __global__ void gflops(unsigned int n)
 int
 main(int argc, char** argv)
 {
-	unsigned int *h, *d;
-	struct timeval e0, e1, e2, e3, ek1, ek2;
-	cudaEvent_t ev1, ev2;
-	float t0, t1, t2, ta, tk;
-	int min_iter= 2, max_iter=10000;
-	int i, j, nmax=100;
-	float t_temp, elapsed_time= 0.0f;
-
-	CUDA_SAFE_CALL( cudaSetDevice(DEVICE) );
-	h= (unsigned int *) malloc(sizeof(unsigned int));
-	*h= 1;
-	cudaMalloc((void**)&d, sizeof(unsigned int));
-	cudaEventCreate( &ev1 );
-	cudaEventCreate( &ev2 );
-
-	cudaMemcpy( d, h, sizeof(unsigned int), cudaMemcpyHostToDevice );
-	gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(min_iter);
-	CUDA_SAFE_CALL( cudaThreadSynchronize() );
-	for( i= min_iter; i <= max_iter; i= i * 2 ) {
-		t0= t1= t2= ta= elapsed_time= 0.0f;
-		// ops
-		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(i);
-		cudaThreadSynchronize();
-
-		//gettimeofday( &ek1, 0 );
-		cudaEventRecord( ev1, 0 );
-		for( j= 0; j < nmax; j++ ){
-		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(i);
-		cudaThreadSynchronize();
-		}
-		//gettimeofday( &ek2, 0 );
-		cudaEventRecord( ev2, 0 );
-		cudaEventSynchronize( ev2 );
-		cudaEventElapsedTime( &t_temp, ev1, ev2 );
-		tk= (t_temp*1e3)/nmax;
-		//tk= ((ek2.tv_sec-ek1.tv_sec)*1e6+(ek2.tv_usec-ek1.tv_usec))/nmax;
-
-		//fprintf( stdout, "kernel iter= %d time= %f\n", i, tk );
-		//fflush(stdout);
-
-		for( j= 0; j < nmax; j++ ){
-		gettimeofday( &e0, 0 );
-		cudaEventRecord( ev1, 0 );
-		gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>(i);
-		cudaEventRecord( ev2, 0 );
-		gettimeofday( &e1, 0 );
-		cudaMemcpy( d, h, sizeof(unsigned int), cudaMemcpyHostToDevice );
-		gettimeofday( &e2, 0 );
-		cudaThreadSynchronize();
-		cudaEventSynchronize( ev2 );
-		gettimeofday( &e3, 0 );
-		t0+= (e1.tv_sec-e0.tv_sec)*1e6+(e1.tv_usec-e0.tv_usec);
-		t1+= (e2.tv_sec-e1.tv_sec)*1e6+(e2.tv_usec-e1.tv_usec);
-		t2+= (e3.tv_sec-e2.tv_sec)*1e6+(e3.tv_usec-e2.tv_usec);
-		ta+= (e3.tv_sec-e0.tv_sec)*1e6+(e3.tv_usec-e0.tv_usec);
-		cudaEventElapsedTime( &t_temp, ev1, ev2 );
-		elapsed_time += t_temp;
-		}
-	t0= t0/nmax; 
-	t1= t1/nmax;
-	t2= t2/nmax;
-	ta= ta/nmax;
-	elapsed_time = elapsed_time/nmax;
-
-	//fprintf( stdout, "i= %d total= %f t0= %f t1= %f t2= %f\n", i, 
-	//		ta, t0, t1, t2 );
-	fprintf( stdout, "res(%4d) tk= %7.2f ta= %7.2f t1= %7.2f\n",
-			i, tk, ta, t0, t1 );
-		fflush(stdout);
-	}
-	cudaEventDestroy( ev1 );
-	cudaEventDestroy( ev2 );
-	cudaThreadExit();
+   CUT_DEVICE_INIT(argc,argv);
+ 
+   // warmup
+   gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>();
+   CUDA_SAFE_CALL( cudaThreadSynchronize() );
+ 
+   // execute kernel
+   unsigned int timer = 0;
+   CUT_SAFE_CALL( cutCreateTimer( &timer));
+   CUT_SAFE_CALL( cutStartTimer( timer));
+ 
+   gflops<<<NUM_BLOCKS, NUM_THREADS_PER_BLOCK>>>();
+ 
+   CUDA_SAFE_CALL( cudaThreadSynchronize() );
+   CUT_SAFE_CALL( cutStopTimer( timer));
+   float time = cutGetTimerValue( timer);
+ 
+   // output results
+   printf( "Time: %f (ms)\n", time);
+   const int flops = 128 * 2 * 16 * NUM_ITERATIONS * NUM_BLOCKS * NUM_THREADS_PER_BLOCK;
+   printf("Gflops: %f\n", (flops / (time / 1000.0f)) / 1e9 );
+ 
+   CUT_SAFE_CALL( cutDeleteTimer( timer));
+   CUT_EXIT(argc, argv);
 }
