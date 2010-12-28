@@ -26,7 +26,7 @@ int main( int argc, char *argv[] )
 	unsigned long nelem;
 	unsigned int g;
 	int i;
-	unsigned int max_iter= 200;
+	unsigned int max_iter= 10;
 	struct foo_test *gpu_info;
 	
 	if( argc > 1 )
@@ -60,8 +60,8 @@ void foo_func(struct foo_test *info)
 	double time_in_us;
 	struct timeval t0, t1;
 	unsigned int flags;
-	unsigned int i;
-	unsigned long mem_size, s;
+	unsigned int i, x, j;
+	unsigned long mem_size;
 
 	flags= 0;
 	CU_SAFE_CALL( cuDeviceGet( &cuDevice, info->device ) );
@@ -74,11 +74,10 @@ void foo_func(struct foo_test *info)
 	fprintf( stdout, "# max memory(MB)= %ld\n", info->mem_size/(1<<20) );
 	fprintf( stdout, "# size(B)  time(us)\n" );
 	fflush(stdout);
-	s= 1;
-	mem_size= 0;
-	do {
-		for( i= 0; i < 10; i++ )
-			CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, mem_size ));
+	for( x= 0; x <= 2; x++ ) {
+	for( j= 64; j <= 1024; j=j+64 ) {
+		mem_size= j*powl(1024,x);
+		CU_SAFE_CALL(cuMemcpyHtoD( d_data, h_data, mem_size ));
 		CU_SAFE_CALL( cuCtxSynchronize() );
 
 		gettimeofday( &t0, 0 );
@@ -87,11 +86,10 @@ void foo_func(struct foo_test *info)
 		CU_SAFE_CALL( cuCtxSynchronize() );
 		gettimeofday( &t1, 0 );
 		time_in_us= (t1.tv_sec-t0.tv_sec)*1e6+(t1.tv_usec-t0.tv_usec);
-		fprintf( stdout, "%10ld %.5f\n", mem_size,
+		fprintf( stdout, "%10ld %10.5f\n", mem_size,
 				time_in_us/(info->max_iter) );
 		fflush(stdout);
-		mem_size= pow( 2, s++ );
-	} while( mem_size <= info->mem_size );
+	}}
 
 	CU_SAFE_CALL( cuMemFree( d_data ) );
 	CU_SAFE_CALL( cuMemFreeHost( h_data ) );
