@@ -35,7 +35,7 @@ main(int argc, char** argv)
 
 	if( argc > 1 )
 		mem_max= atoi(argv[1]);
-	if( argc > 1 )
+	if( argc > 2 )
 		max_work = atoi(argv[2]);
 
 	CUDA_SAFE_CALL( cudaSetDevice(DEVICE) );
@@ -84,8 +84,7 @@ main(int argc, char** argv)
 		mem_size= i*powl(1024,x);
 		time1_0= time2_0= time3_0= k_time= 0;
 
-		for( j= 0; j < 2; j++ )
-			cudaMemcpy( d, h, mem_size, cudaMemcpyDeviceToHost);
+		cudaMemcpy( d, h, mem_size, cudaMemcpyDeviceToHost);
 
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
