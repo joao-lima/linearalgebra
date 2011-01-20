@@ -35,7 +35,7 @@ main(int argc, char** argv)
 
 	if( argc > 1 )
 		mem_max= atoi(argv[1]);
-	if( argc > 1 )
+	if( argc > 2 )
 		max_work = atoi(argv[2]);
 
 	CUDA_SAFE_CALL( cudaSetDevice(DEVICE) );
