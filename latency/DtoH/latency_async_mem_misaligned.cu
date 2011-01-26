@@ -84,8 +84,8 @@ main(int argc, char** argv)
 		mem_size= i*powl(1024,x);
 		time1_0= time2_0= time3_0= k_time= 0;
 
-		for( j= 0; j < 2; j++ )
-			cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
+		CUDA_SAFE_CALL( cudaMemcpy( h, d, mem_size,
+					cudaMemcpyDeviceToHost) );
 
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
@@ -93,7 +93,8 @@ main(int argc, char** argv)
 			       d_data, N, offset, d_timer);
 		CUDA_SAFE_THREAD_SYNC();
 		gettimeofday( &t1, 0 );
-		CUDA_SAFE_CALL( cudaMemcpyAsync( d, h, mem_size, cudaMemcpyHostToDevice, stream2 ) );
+		CUDA_SAFE_CALL( cudaMemcpyAsync( h, d, mem_size,
+					cudaMemcpyDeviceToHost, stream2 ) );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream2) );
 		gettimeofday( &t2, 0 );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream1) );

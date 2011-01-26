@@ -20,7 +20,7 @@ main(int argc, char** argv)
 	struct timeval ek0, ek1, t0, t1, t2, t3;
 	float time1_0, time2_0, time3_0, tk;
 	float k_time;
-	int max_work=630;
+	int max_work=2800;
 	unsigned int mem_max= 30;
 	unsigned long mem_size, mem_size_clock, shared_mem_size;
 	int i, j, nmax=100;
@@ -30,7 +30,7 @@ main(int argc, char** argv)
 	float *d_data;
 	unsigned int mem_size_result;
 	unsigned int N;
-	unsigned int offset= 1;
+	unsigned int offset= 0;
 	unsigned int flops;
 
 	if( argc > 1 )
@@ -60,14 +60,14 @@ main(int argc, char** argv)
         cudaGetDeviceProperties(&deviceProp, DEVICE);
 
 	cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
-	gflops_heavy<<<sm, thread, shared_mem_size, 0>>>(max_work, d_data, N,
+	gflops_light<<<sm, thread, shared_mem_size, 0>>>(max_work, d_data, N,
 			offset, d_timer);
 	CUDA_SAFE_THREAD_SYNC();
 	CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
 	gettimeofday( &ek0, 0 );
 	for( j= 0; j < nmax; j++ ){
-	gflops_heavy<<<sm, thread, shared_mem_size, 0>>>(max_work, d_data, 
+	gflops_light<<<sm, thread, shared_mem_size, 0>>>(max_work, d_data, 
 			N, offset, d_timer);
 	CUDA_SAFE_THREAD_SYNC();
 	}
@@ -82,18 +82,20 @@ main(int argc, char** argv)
 	for( x= 0; x <= 2; x++ ) {
 	for( i= 64; i <= 1024; i=i+64 ) {
 		mem_size= i*powl(1024,x);
+
 		time1_0= time2_0= time3_0= k_time= 0;
 
-		for( j= 0; j < 2; j++ )
-			cudaMemcpy( d, h, mem_size, cudaMemcpyHostToDevice );
+		CUDA_SAFE_CALL( cudaMemcpy( h, d, mem_size,
+					cudaMemcpyDeviceToHost));
 
 		for( j= 0; j < nmax; j++ ){
 		gettimeofday( &t0, 0 );
-		gflops_heavy<<<sm, thread, shared_mem_size, stream1>>>(max_work,
+		gflops_light<<<sm, thread, shared_mem_size, stream1>>>(max_work,
 			       d_data, N, offset, d_timer);
 		CUDA_SAFE_THREAD_SYNC();
 		gettimeofday( &t1, 0 );
-		CUDA_SAFE_CALL( cudaMemcpyAsync( d, h, mem_size, cudaMemcpyHostToDevice, stream2 ) );
+		CUDA_SAFE_CALL( cudaMemcpyAsync( h, d, mem_size,
+					cudaMemcpyDeviceToHost, stream2 ) );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream2) );
 		gettimeofday( &t2, 0 );
 		CUDA_SAFE_CALL( cudaStreamSynchronize(stream1) );
@@ -109,7 +111,7 @@ main(int argc, char** argv)
 				mem_size,
 				time1_0, time2_0, time3_0, k_time );
 		} else {
-			fprintf( stdout, "# %10u %10.2f %10.2f %10.2f %10.2f\n",
+			fprintf( stdout, "# %10u %10.2f %10.2f %10.2f %10.2f\n",
 				mem_size,
 				time1_0, time2_0, time3_0, k_time );
 		}
