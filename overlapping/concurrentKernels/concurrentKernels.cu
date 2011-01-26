@@ -43,7 +43,10 @@ __global__ void add1( float* array, unsigned int size )
   unsigned int j = size;
   if (threadIdx.x != (blockDim.x - 1)) j = i + per_thread;
 
-  for (; i < j; ++i) ++array[i];
+  unsigned int k;
+  for (; i < j; ++i)
+  for(k = 0; k < 10;k++)
+		  ++array[i];
 }
 
 int check( const float *data, const unsigned int n, const float v )
@@ -58,14 +61,13 @@ int check( const float *data, const unsigned int n, const float v )
 int main(int argc, char **argv)
 {
     int cuda_device = 0;
-    unsigned int mem_size = (1 << 27);
+    unsigned int mem_size = (1 << 26);
     unsigned int nstreams = NSTREAMS;
     unsigned int ntasks = NTASKS;
     unsigned int nevents = ntasks * 2;
     float *h_data[NTASKS], *d_data[NTASKS];
     float elapsed_time= 0;
 
-    printf("[ %s ]\n", sSDKsample);
     cuda_device = 0;
     cudaDeviceProp deviceProp;
     CUDA_SAFE_CALL( cudaGetDevice(&cuda_device));	
@@ -74,7 +76,7 @@ int main(int argc, char **argv)
     if( (deviceProp.concurrentKernels == 0 ))
         printf("> GPU does not support concurrent kernel execution, kernel runs will be serialized\n");
 
-    printf("> Detected Compute SM %d.%d hardware with %d multi-processors\n", deviceProp.major, deviceProp.minor, deviceProp.multiProcessorCount); 
+    //printf("> Detected Compute SM %d.%d hardware with %d multi-processors\n", deviceProp.major, deviceProp.minor, deviceProp.multiProcessorCount); 
 
     cudaStream_t *streams = (cudaStream_t*) malloc(nstreams * sizeof(cudaStream_t));
     cudaEvent_t *events = (cudaEvent_t*) malloc(nevents * sizeof(cudaEvent_t));
@@ -117,10 +119,10 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL( cudaEventElapsedTime(&elapsed_time,
 		    start_event, stop_event) );
     
-    printf("Measured time for sample = %.3fs\n", elapsed_time/1000.0f);
+    printf("Measured time for sample = %.4f\n", elapsed_time);
 
     for( int i= 0; i < ntasks; i++ )
-	    if( check( h_data[i], mem_size/sizeof(float), 2.0) )
+	    if( check( h_data[i], mem_size/sizeof(float), 11) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
     // release resources

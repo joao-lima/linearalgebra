@@ -45,7 +45,7 @@ __global__ void add1( float* array, unsigned int size )
   unsigned int k;
   for (; i < j; ++i)
   for(k = 0; k < 10;k++)
-		  ++array[i];
+	  ++array[i];
 }
 
 int check( const float *data, const unsigned int n, const float v )
@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     int cuda_device = 0;
     unsigned int mem_size = (1 << 26);
     unsigned int ntasks = NTASKS;
+    unsigned int itasks = 0; // n of ready tasks
     float *h_data[NTASKS], *d_data[NTASKS];
     float elapsed_time= 0;
 
@@ -75,6 +76,10 @@ int main(int argc, char **argv)
 
     //printf("> Detected Compute SM %d.%d hardware with %d multi-processors\n", deviceProp.major, deviceProp.minor, deviceProp.multiProcessorCount); 
 
+    cudaStream_t *streams = (cudaStream_t*) malloc(ntasks * sizeof(cudaStream_t));
+    for(int i = 0; i < ntasks; i++)
+	CUDA_SAFE_CALL( cudaStreamCreate(&(streams[i])) );
+
     for( int i= 0; i < ntasks; i++ ) {
 	CUDA_SAFE_CALL( cudaMallocHost((void**)&h_data[i], mem_size) ); 
 	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data[i], mem_size) );
@@ -86,17 +91,57 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL( cudaEventCreate(&start_event) );
     CUDA_SAFE_CALL( cudaEventCreate(&stop_event) );
 	
+    cudaStream_t stream_HtoD, stream_DtoH, stream_k;
+    CUDA_SAFE_CALL( cudaStreamCreate(&stream_HtoD) );
+    CUDA_SAFE_CALL( cudaStreamCreate(&stream_DtoH) );
+    CUDA_SAFE_CALL( cudaStreamCreate(&stream_k) );
+
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
     cudaEventRecord(start_event, 0);
-    // queue nkernels in separate streams and record when they are done
-    for( int i=0; i < ntasks; ++i) {
-	CUDA_SAFE_CALL( cudaMemcpy( d_data[i], h_data[i], mem_size,
-			cudaMemcpyHostToDevice ));
 
-        add1<<<1,256,0,0>>>(d_data[i], (mem_size/sizeof(float)) );
+    unsigned int i_HtoD= 0, i_DtoH= 0, i_k= 0;
 
-	CUDA_SAFE_CALL( cudaMemcpy( h_data[i], d_data[i], mem_size,
-			cudaMemcpyDeviceToHost ) );
+  CUDA_SAFE_CALL( cudaMemcpyAsync( d_data[i_HtoD],
+	h_data[i_HtoD], mem_size,
+	cudaMemcpyHostToDevice, stream_HtoD ));
+	   i_HtoD++;
+	 cudaStreamSynchronize( stream_HtoD );
+		  fprintf(stdout,"kernel k=%d\n",i_k);fflush(stdout);
+       add1<<<1,256,0,stream_k>>>(d_data[i_k], (mem_size/sizeof(float)) );
+       i_k++;
+    while( itasks < ntasks ) {
+	if( cudaStreamQuery( stream_k ) == cudaErrorNotReady ) {
+	       if( i_HtoD < ntasks &&
+			cudaStreamQuery( stream_HtoD )  == cudaSuccess ) {
+		  fprintf(stdout,"HtoD k=%d\n",i_HtoD);fflush(stdout);
+		  CUDA_SAFE_CALL( cudaMemcpyAsync( d_data[i_HtoD],
+			h_data[i_HtoD], mem_size,
+			cudaMemcpyHostToDevice, stream_HtoD ));
+		   i_HtoD++;
+	       }
+	       cudaStreamSynchronize( stream_k ) ;
+	       continue;
+	} else {
+	  fprintf(stdout,"DtoH for k=%d\n",i_DtoH);fflush(stdout);
+	CUDA_SAFE_CALL( cudaMemcpyAsync( h_data[i_DtoH],
+		d_data[i_DtoH], mem_size,
+		cudaMemcpyDeviceToHost, stream_DtoH ) );
+	i_DtoH++;
+	itasks++;
+	if( i_k < ntasks ) {
+	  fprintf(stdout,"kernel k=%d\n",i_k);fflush(stdout);
+        add1<<<1,256,0,stream_k>>>(d_data[i_k], (mem_size/sizeof(float)) );
+       i_k++;
+	}
+       if( i_HtoD < ntasks ) {
+	  fprintf(stdout,"HtoD k=%d\n",i_HtoD);fflush(stdout);
+	  CUDA_SAFE_CALL( cudaMemcpyAsync( d_data[i_HtoD],
+		h_data[i_HtoD], mem_size,
+		cudaMemcpyHostToDevice, stream_HtoD ));
+	   i_HtoD++;
+       }
+
+	}
     }
 
     // in this sample we just wait until the GPU is done
@@ -111,11 +156,16 @@ int main(int argc, char **argv)
 	    if( check( h_data[i], mem_size/sizeof(float), 11) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
+    // release resources
+    for(int i = 0; i < ntasks; i++)
+		cudaStreamDestroy(streams[i]);
+
     for( int i= 0; i < ntasks; i++ ) {
 	    cudaFreeHost(h_data[i]);
 	    cudaFree(d_data[i]);
     }
 
+    free(streams);
     cudaEventDestroy(start_event);
     cudaEventDestroy(stop_event);
 

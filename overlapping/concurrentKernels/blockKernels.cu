@@ -45,7 +45,7 @@ __global__ void add1( float* array, unsigned int size )
   unsigned int k;
   for (; i < j; ++i)
   for(k = 0; k < 10;k++)
-		  ++array[i];
+	  ++array[i];
 }
 
 int check( const float *data, const unsigned int n, const float v )
@@ -75,6 +75,10 @@ int main(int argc, char **argv)
 
     //printf("> Detected Compute SM %d.%d hardware with %d multi-processors\n", deviceProp.major, deviceProp.minor, deviceProp.multiProcessorCount); 
 
+    cudaStream_t *streams = (cudaStream_t*) malloc(ntasks * sizeof(cudaStream_t));
+    for(int i = 0; i < ntasks; i++)
+	CUDA_SAFE_CALL( cudaStreamCreate(&(streams[i])) );
+
     for( int i= 0; i < ntasks; i++ ) {
 	CUDA_SAFE_CALL( cudaMallocHost((void**)&h_data[i], mem_size) ); 
 	CUDA_SAFE_CALL( cudaMalloc((void**)&d_data[i], mem_size) );
@@ -89,15 +93,16 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
     cudaEventRecord(start_event, 0);
     // queue nkernels in separate streams and record when they are done
-    for( int i=0; i < ntasks; ++i) {
-	CUDA_SAFE_CALL( cudaMemcpy( d_data[i], h_data[i], mem_size,
-			cudaMemcpyHostToDevice ));
+    for( int i=0; i < ntasks; ++i)
+	CUDA_SAFE_CALL( cudaMemcpyAsync( d_data[i], h_data[i], mem_size,
+			cudaMemcpyHostToDevice, streams[i] ));
 
-        add1<<<1,256,0,0>>>(d_data[i], (mem_size/sizeof(float)) );
+    for( int i=0; i < ntasks; ++i)
+        add1<<<1,256,0,streams[i]>>>(d_data[i], (mem_size/sizeof(float)) );
 
-	CUDA_SAFE_CALL( cudaMemcpy( h_data[i], d_data[i], mem_size,
-			cudaMemcpyDeviceToHost ) );
-    }
+    for( int i=0; i < ntasks; ++i)
+	CUDA_SAFE_CALL( cudaMemcpyAsync( h_data[i], d_data[i], mem_size,
+			cudaMemcpyDeviceToHost, streams[i] ) );
 
     // in this sample we just wait until the GPU is done
     CUDA_SAFE_CALL( cudaEventRecord(stop_event, 0) );
@@ -111,11 +116,16 @@ int main(int argc, char **argv)
 	    if( check( h_data[i], mem_size/sizeof(float), 11) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
+    // release resources
+    for(int i = 0; i < ntasks; i++)
+		cudaStreamDestroy(streams[i]);
+
     for( int i= 0; i < ntasks; i++ ) {
 	    cudaFreeHost(h_data[i]);
 	    cudaFree(d_data[i]);
     }
 
+    free(streams);
     cudaEventDestroy(start_event);
     cudaEventDestroy(stop_event);
 
