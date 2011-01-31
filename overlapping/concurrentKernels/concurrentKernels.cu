@@ -1,62 +1,7 @@
-/*
- * Copyright 1993-2010 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- *
- */
-
-//
-// This sample demonstrates the use of streams for concurrent execution. It also illustrates how to 
-// introduce dependencies between CUDA streams with the new cudaStreamWaitEvent function introduced 
-// in CUDA 3.2.
-//
-// Devices of compute capability 1.x will run the kernels one after another
-// Devices of compute capability 2.0 or higher can overlap the kernels
-//
-
 #include <stdio.h>
 
-const char *sSDKsample = "concurrentKernels";
-
-#define CUDA_SAFE_CALL(call) do {                                 \
-    cudaError err = call;                                                    \
-    if( cudaSuccess != err) {                                                \
-        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",        \
-                __FILE__, __LINE__, cudaGetErrorString( err) );              \
-        exit(EXIT_FAILURE);                                                  \
-    }                                                                        \
-    }while(0)
-
-
-#define	NTASKS	4
 #define	NSTREAMS	4
-
-__global__ void add1( float* array, unsigned int size )
-{
-  const unsigned int per_thread = size / blockDim.x;
-  unsigned int i = threadIdx.x * per_thread;
-
-  unsigned int j = size;
-  if (threadIdx.x != (blockDim.x - 1)) j = i + per_thread;
-
-  unsigned int k;
-  for (; i < j; ++i)
-  for(k = 0; k < 10;k++)
-		  ++array[i];
-}
-
-int check( const float *data, const unsigned int n, const float v )
-{
-	for( int i= 0; i < n; i++ )
-		if( data[i] != v )
-			return 1;
-
-	return 0;
-}
+#include "add1_kernel.cu"
 
 int main(int argc, char **argv)
 {

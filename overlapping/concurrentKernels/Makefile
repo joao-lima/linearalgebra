@@ -1,11 +1,11 @@
 
-NVCC:= nvcc
+NVCC:= nvcc -arch=sm_20
 CXXFLAGS:=
 LDFLAGS:= -lcuda
 
 PROGS:= asyncKernels blockKernels concurrentKernels2 concurrentKernels \
 	controlKernels duplex inverseKernels2 \
-	 inverseKernels sequencialKernels
+	 inverseKernels sequencialKernels sequencialKernels2
 
 all: $(PROGS)
 
@@ -26,6 +26,8 @@ inverseKernels2: inverseKernels2.cu
 inverseKernels: inverseKernels.cu
 	$(NVCC) -o $@ $^ $(LDFLAGS)
 sequencialKernels: sequencialKernels.cu
+	$(NVCC) -o $@ $^ $(LDFLAGS)
+sequencialKernels2: sequencialKernels2.cu
 	$(NVCC) -o $@ $^ $(LDFLAGS)
 
 clean:

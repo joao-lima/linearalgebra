@@ -32,7 +32,7 @@ const char *sSDKsample = "concurrentKernels";
     }while(0)
 
 
-#define	NTASKS	2
+#define	NTASKS	8
 #define BLOCK_SIZE	256
 
 __global__ void add1( float* array, unsigned int size )
@@ -45,11 +45,11 @@ __global__ void add1( float* array, unsigned int size )
   if (threadIdx.x != (blockDim.x - 1)) j = i + per_thread;
 
   unsigned int k;
-  a[threadIdx.x]= 1;
-//  for (; i < j; ++i)
+//  a[threadIdx.x]= 1;
+  for (; i < j; ++i)
   for(k = 0; k < 100;k++)
-	  a[threadIdx.x]++;
-//	  ++array[i];
+	  ++array[i];
+//	  a[threadIdx.x]++;
 }
 
 int check( const float *data, const unsigned int n, const float v )
@@ -64,7 +64,7 @@ int check( const float *data, const unsigned int n, const float v )
 int main(int argc, char **argv)
 {
     int cuda_device = 0;
-    unsigned int mem_size = (1 << 26);
+    unsigned int mem_size = (1 << 25);
     unsigned int ntasks = NTASKS;
     float *h_data[NTASKS], *d_data[NTASKS];
     float elapsed_time= 0;
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     printf("Measured time for sample = %.4f\n", elapsed_time);
 
     for( int i= 0; i < ntasks; i++ )
-	    if( check( h_data[i], mem_size/sizeof(float), 11) )
+	    if( check( h_data[i], mem_size/sizeof(float), 101) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
     // release resources
