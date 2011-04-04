@@ -23,8 +23,8 @@ main(int argc, char** argv)
 	int max_work=2800;
 	unsigned int mem_max= 30;
 	unsigned long mem_size, mem_size_clock, shared_mem_size;
-	int i, j, nmax=100;
-	unsigned int sm= 30, thread= 128;
+	int i, j, nmax= NMAX;
+	unsigned int sm= GRID_SIZE, thread= BLOCK_SIZE;
 	cudaStream_t stream1, stream2;
         cudaDeviceProp deviceProp;
 	float *d_data;

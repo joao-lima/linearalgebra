@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
     int cuda_device = 0;
-    unsigned int mem_size = (1 << 25);
+    unsigned int mem_size = (1 << MAX_MEM);
     unsigned int ntasks = NTASKS;
     float *h_data[NTASKS], *d_data[NTASKS];
     float elapsed_time= 0;
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     printf("Measured time for sample = %.4f\n", elapsed_time);
 
     for( int i= 0; i < ntasks; i++ )
-	    if( check( h_data[i], mem_size/sizeof(float), 101) )
+	    if( check( h_data[i], mem_size/sizeof(float), 2) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
     for( int i= 0; i < ntasks; i++ ) {

@@ -1,10 +1,8 @@
 
-#define NUM_SMS (24)
-#define NUM_THREADS_PER_SM (384)
-#define NUM_THREADS_PER_BLOCK (192)
-#define NUM_BLOCKS ((NUM_THREADS_PER_SM / NUM_THREADS_PER_BLOCK) * NUM_SMS)
-#define NUM_ITERATIONS 99999
- 
+#define GRID_SIZE	28
+#define	BLOCK_SIZE	512
+#define NMAX		1
+
 // 128 MAD instructions
 #define FMAD128(a, b) \
      a = b * a + b; \

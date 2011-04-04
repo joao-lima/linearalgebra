@@ -6,7 +6,7 @@
 int main(int argc, char **argv)
 {
     int cuda_device = 0;
-    unsigned int mem_size = (1 << 26);
+    unsigned int mem_size = (1 << MAX_MEM);
     unsigned int nstreams = NSTREAMS;
     unsigned int ntasks = NTASKS;
     unsigned int nevents = ntasks * 2;
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 	CUDA_SAFE_CALL( cudaEventRecord( events[i*2], streams[0] ) );
 
 	CUDA_SAFE_CALL( cudaStreamWaitEvent( streams[1], events[i*2], 0) );
-        add1<<<1,256,0,streams[1]>>>(d_data[i], (mem_size/sizeof(float)) );
+        add1<<<GRID_SIZE,BLOCK_SIZE,0,streams[1]>>>(d_data[i], (mem_size/sizeof(float)) );
 	CUDA_SAFE_CALL( cudaEventRecord( events[i*2+1], streams[1] ) );
 
 	CUDA_SAFE_CALL( cudaStreamWaitEvent( streams[2], events[i*2+1], 0) );
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     printf("Measured time for sample = %.4f\n", elapsed_time);
 
     for( int i= 0; i < ntasks; i++ )
-	    if( check( h_data[i], mem_size/sizeof(float), 11) )
+	    if( check( h_data[i], mem_size/sizeof(float), 2) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
     // release resources

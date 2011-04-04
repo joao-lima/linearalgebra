@@ -1,66 +1,11 @@
-/*
- * Copyright 1993-2010 NVIDIA Corporation.  All rights reserved.
- *
- * Please refer to the NVIDIA end user license agreement (EULA) associated
- * with this source code for terms and conditions that govern your use of
- * this software. Any use, reproduction, disclosure, or distribution of
- * this software and related documentation outside the terms of the EULA
- * is strictly prohibited.
- *
- */
-
-//
-// This sample demonstrates the use of streams for concurrent execution. It also illustrates how to 
-// introduce dependencies between CUDA streams with the new cudaStreamWaitEvent function introduced 
-// in CUDA 3.2.
-//
-// Devices of compute capability 1.x will run the kernels one after another
-// Devices of compute capability 2.0 or higher can overlap the kernels
-//
-
 #include <stdio.h>
 
-const char *sSDKsample = "concurrentKernels";
-
-#define CUDA_SAFE_CALL(call) do {                                 \
-    cudaError err = call;                                                    \
-    if( cudaSuccess != err) {                                                \
-        fprintf(stderr, "Cuda error in file '%s' in line %i : %s.\n",        \
-                __FILE__, __LINE__, cudaGetErrorString( err) );              \
-        exit(EXIT_FAILURE);                                                  \
-    }                                                                        \
-    }while(0)
-
-
-#define	NTASKS	32
-
-__global__ void add1( float* array, unsigned int size )
-{
-  const unsigned int per_thread = size / blockDim.x;
-  unsigned int i = threadIdx.x * per_thread;
-
-  unsigned int j = size;
-  if (threadIdx.x != (blockDim.x - 1)) j = i + per_thread;
-
-  unsigned int k;
-  for (; i < j; ++i)
-  for(k = 0; k < 10;k++)
-	  ++array[i];
-}
-
-int check( const float *data, const unsigned int n, const float v )
-{
-	for( int i= 0; i < n; i++ )
-		if( data[i] != v )
-			return 1;
-
-	return 0;
-}
+#include "add1_kernel.cu"
 
 int main(int argc, char **argv)
 {
     int cuda_device = 0;
-    unsigned int mem_size = (1 << 26);
+    unsigned int mem_size = (1 << MAX_MEM);
     unsigned int ntasks = NTASKS;
     float *h_data[NTASKS], *d_data[NTASKS];
     float elapsed_time= 0;
@@ -98,7 +43,7 @@ int main(int argc, char **argv)
 			cudaMemcpyHostToDevice, streams[i] ));
 
     for( int i=0; i < ntasks; ++i)
-        add1<<<1,256,0,streams[i]>>>(d_data[i], (mem_size/sizeof(float)) );
+        add1<<<GRID_SIZE,BLOCK_SIZE,0,streams[i]>>>(d_data[i], (mem_size/sizeof(float)) );
 
     for( int i=0; i < ntasks; ++i)
 	CUDA_SAFE_CALL( cudaMemcpyAsync( h_data[i], d_data[i], mem_size,
@@ -110,10 +55,10 @@ int main(int argc, char **argv)
     CUDA_SAFE_CALL( cudaEventElapsedTime(&elapsed_time,
 		    start_event, stop_event) );
     
-    printf("Measured time for sample = %.3fs\n", elapsed_time/1000.0f);
+    printf("Measured time for sample = %.4f\n", elapsed_time);
 
     for( int i= 0; i < ntasks; i++ )
-	    if( check( h_data[i], mem_size/sizeof(float), 11) )
+	    if( check( h_data[i], mem_size/sizeof(float), 2) )
 		    fprintf(stdout, "ERROR at task %d\n", i ); fflush(stdout);
     
     // release resources
