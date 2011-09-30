@@ -15,7 +15,7 @@
 #include "magmablas.h"
 //#include "magma_lapack.h"
 
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 static int do_check
@@ -112,7 +112,7 @@ main( int argc, char **argv )
         return -2;
     }
 
- //   fprintf(stdout, "# MAGMA N=%d\n", N);fflush(stdout);
+//    fprintf(stdout, "# MAGMA N=%d\n", N);fflush(stdout);
 
     larnv(IONE, ISEED, msize, A);
     larnv(IONE, ISEED, msize, B);
@@ -149,7 +149,7 @@ main( int argc, char **argv )
     double tdelta = t1 - t0;
     double gflops = 1.0e-9 * ((2.0 * N * N * N)/(t1-t0));
     printf("# method     size   time      GFlop/s\n");
-    printf("SGEMM %6d %9.3f %9.3f\n", (int)N, tdelta, gflops);
+    printf("DGEMM_fermi %6d %9.3f %9.3f\n", (int)N, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {

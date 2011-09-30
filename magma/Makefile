@@ -10,6 +10,12 @@ CXXFLAGS = -O2 -Wall \
 	-I$(HOME)/install/atlas3.9.47/include \
 	-I$(HOME)/install/lapacke-3.3.0/include 
 
+CXXFLAGS_FERMI = -O2 -Wall \
+	 -I$(HOME)/install/magma_1.0.0-fermi/include \
+	-I$(CUDA)/include \
+	-I$(HOME)/install/atlas3.9.47/include \
+	-I$(HOME)/install/lapacke-3.3.0/include 
+
 CFLAGS := $(CXXFLAGS)
 
 LDFLAGS = -lm -lpthread \
@@ -20,14 +26,38 @@ LDFLAGS = -lm -lpthread \
 	-L$(HOME)/install/magma_1.0.0/lib -lmagma -lmagmablas \
 	-llapack -lcblas -latlas -lf77blas -lgfortran 
 
-PROGS = sgemm_matprod spotrf_matcholesky sgetrf_matlu
+LDFLAGS_FERMI = -lm -lpthread \
+	-L$(CUDA)/lib64 -lcublas -lcuda \
+	-L$(HOME)/install/lapacke-3.3.0/lib -llapacke \
+	-L$(HOME)/install/atlas3.9.47/lib \
+	-llapack -lcblas -latlas -lf77blas -lgfortran \
+	-L$(HOME)/install/magma_1.0.0-fermi/lib -lmagma -lmagmablas \
+	-llapack -lcblas -latlas -lf77blas -lgfortran 
+
+PROGS = sgemm_matprod dgemm_matprod \
+	spotrf_matcholesky \
+	sgetrf_matlu \
+	sgemm_matprod_fermi dgemm_matprod_fermi
 
 all: $(PROGS)
+
+sgemm_matprod_fermi.o: sgemm_matprod_fermi.cpp
+	$(CXX) $(CXXFLAGS_FERMI) -c $< -o $@
+sgemm_matprod_fermi: sgemm_matprod_fermi.o
+	$(LOADER) $< -o $@ $(LDFLAGS_FERMI) 
+
+dgemm_matprod_fermi.o: dgemm_matprod_fermi.cpp
+	$(CXX) $(CXXFLAGS_FERMI) -c $< -o $@
+dgemm_matprod_fermi: dgemm_matprod_fermi.o
+	$(LOADER) $< -o $@ $(LDFLAGS_FERMI) 
 
 .c.o:
 	$(CXX) $(CFLAGS) -c $< -o $@
 
 sgemm_matprod: sgemm_matprod.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgemm_matprod: dgemm_matprod.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 spotrf_matcholesky: spotrf_matcholesky.o

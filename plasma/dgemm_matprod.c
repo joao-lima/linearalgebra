@@ -9,7 +9,9 @@
 #include <lapacke.h>
 #include <core_blas.h>
 
-#define CONFIG_USE_FLOAT 1
+//#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE  1
+
 #include "test_types.h"
 
 static int check_solution(PLASMA_enum transA, PLASMA_enum transB, int M, int N, int K,
@@ -114,7 +116,7 @@ main( int argc, char **argv )
 
     double gflops = 1.0e-9 * ((2.0 * M * M * M)/(t1-t0));
     printf("# size   #threads    time      GFlop/s\n");
-    printf("SGEMM %6d %5d %9.3f %9.3f\n", (int)N, (int)cores, tdelta, gflops);
+    printf("DGEMM %6d %5d %9.3f %9.3f\n", (int)N, (int)cores, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {

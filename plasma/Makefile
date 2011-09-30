@@ -13,7 +13,8 @@ LDFLAGS += -L/home/jvlima/install/plasma-2.4.1/lib \
 -L/home/jvlima/install/plasma-2.4.1/lib -ltmg -llapack \
 -L/home/jvlima/install/plasma-2.4.1/lib -lrefblas  -lpthread -lm
 
-PROGS = spotrf_matcholesky sgetrf_matlu sgemm_matprod
+PROGS = spotrf_matcholesky sgetrf_matlu sgemm_matprod \
+	dgemm_matprod
 
 all: $(PROGS)
 
@@ -27,6 +28,9 @@ sgetrf_matlu: sgetrf_matlu.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 sgemm_matprod: sgemm_matprod.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgemm_matprod: dgemm_matprod.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 clean:
