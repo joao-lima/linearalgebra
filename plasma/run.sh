@@ -8,7 +8,7 @@
 ncores=$(seq 1 8)
 #ncores="8"
 #verif="1"
-niter="1"
+niter="30"
 version=$(date +%s)
 out="$HOME/res/plasma-gemm-$version.txt"
 

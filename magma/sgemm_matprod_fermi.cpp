@@ -148,7 +148,7 @@ main( int argc, char **argv )
     double tdelta = t1 - t0;
     double gflops = 1.0e-9 * ((2.0 * N * N * N)/(t1-t0));
     printf("# method     size   time      GFlop/s\n");
-    printf("SGEMM_fermi %6d %9.3f %9.3f\n", (int)N, tdelta, gflops);
+    printf("SGEMM_fermi %6d %10.10f %9.6f\n", (int)N, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {

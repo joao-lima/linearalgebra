@@ -5,17 +5,15 @@
 #include <math.h>
 #include <sys/time.h>
 
+extern "C" {
 #include "cblas.h"
+}
 #include "lapacke.h"
 
-#include "cuda.h"
-#include "cublas.h"
+#include "cuda_runtime.h"
+#include "cublas_v2.h"
 
-#include "magma.h"
-#include "magmablas.h"
-//#include "magma_lapack.h"
-
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 static int do_check
@@ -87,10 +85,10 @@ main( int argc, char **argv )
     double_type beta = (double_type) 1.0;
     int N     = 512;
     int verif= 0;
-    char transa, transb;
     double t0, t1;
-
-    transa = transb = MagmaNoTrans;
+    cublasHandle_t handle;
+    cublasStatus_t res;
+    cublasOperation_t transa, transb;
 
 	if( argc > 1 ){
 		N = atoi(argv[1]);
@@ -104,31 +102,31 @@ main( int argc, char **argv )
     double_type *A      = (double_type *)malloc(msize*sizeof(double_type));
     double_type *B      = (double_type *)malloc(msize*sizeof(double_type));
     double_type *C      = (double_type *)malloc(msize*sizeof(double_type));
-    double_type *Cinit  = (double_type *)malloc(msize*sizeof(double_type));
+	double_type *Cinit;
+    if( verif )
+	    Cinit  = (double_type *)malloc(msize*sizeof(double_type));
+    transa = transb = CUBLAS_OP_N;
 
     /* Check if unable to allocate memory */
-    if ( (!A) || (!B) || (!Cinit) || (!C) ){
+    if ( (!A) || (!B) || (!C) ){
         printf("Out of Memory \n ");
         return -2;
     }
-
- //   fprintf(stdout, "# MAGMA N=%d\n", N);fflush(stdout);
 
     larnv(IONE, ISEED, msize, A);
     larnv(IONE, ISEED, msize, B);
     larnv(IONE, ISEED, msize, C);
 
-    	lacpy( LAPACK_COL_MAJOR, ' ', N, N, C, N, Cinit, N );
-#if 0
-    for ( i = 0; i < N; i++)
-	for (  j = 0; j < N; j++)
-	    Cinit[N*j+i] = C[N*j+i];
-    for ( i = 0; i < N; i++)
-	for (  j = 0; j < N; j++)
-	    Cfinal[N*j+i] = C[N*j+i];
-#endif
+    if( verif )
+	    lacpy( LAPACK_COL_MAJOR, ' ', N, N, C, N, Cinit, N );
 
     cudaSetDevice(0);
+    res= cublasCreate( &handle );
+    if( res != CUBLAS_STATUS_SUCCESS ) {
+	    fprintf(stdout, "CUBLAS error: %d\n", res );
+	    fflush(stdout);
+	    return -1;
+    }
     double_type *d_A, *d_B, *d_C;
 	cudaMalloc( &d_A, msize*sizeof(double_type) );
 	cudaMalloc( &d_B, msize*sizeof(double_type) );
@@ -139,17 +137,26 @@ main( int argc, char **argv )
 
       cudaThreadSynchronize();
       t0 = get_elapsedtime();
-      magmablas_gemm( transa, transb, N, N, N, alpha, d_A, N, d_B, N, beta,
-		      d_C, N);
+      res= cublasGemm( handle,
+		transa, transb , N, N, N, &alpha,
+		d_A, N,
+		d_B, N,
+		&beta,
+		d_C, N);
       cudaThreadSynchronize();
       t1 = get_elapsedtime();
+    if( res != CUBLAS_STATUS_SUCCESS ) {
+	    fprintf(stdout, "CUBLAS error: %d\n", res );
+	    fflush(stdout);
+	    return -1;
+    }
 
 	cublasGetMatrix( N, N, sizeof(double_type), d_C, N, C, N );
 
     double tdelta = t1 - t0;
     double gflops = 1.0e-9 * ((2.0 * N * N * N)/(t1-t0));
     printf("# method     size   time      GFlop/s\n");
-    printf("SGEMM %6d %10.10f %9.6f\n", (int)N, tdelta, gflops);
+    printf("DGEMM %6d %10.10f %9.6f\n", (int)N, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {
@@ -157,18 +164,19 @@ main( int argc, char **argv )
 	    info_solution = do_check( A, B, Cinit, C, N );
 
 	    if (info_solution == 0) {
-		printf("# TESTING SGEMM .............. PASSED !\n");
+		printf("# TESTING DGEMM .............. PASSED !\n");
 	    }
 	    else {
-		printf("# TESTING SGEMM ... FAILED !\n");
+		printf("# TESTING DGEMM ... FAILED !\n");
 	    }
+    	free(Cinit); 
     }
     free(A); free(B); free(C);
-    free(Cinit); 
 
     cudaFree( d_A );
     cudaFree( d_B );
     cudaFree( d_C );
+    cublasDestroy( handle );
 
     return 0;
 }

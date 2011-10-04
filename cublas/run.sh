@@ -8,7 +8,7 @@
 #verif="1"
 niter="30"
 version=$(date +%s)
-out="$HOME/res/magma-gemm-$version.txt"
+out="$HOME/res/cublas-gemm-$version.txt"
 
 # FLOAT
 ninputs="$(seq 64 64 10240)"
@@ -21,15 +21,6 @@ do
 	./sgemm_matprod $n $verif >> $out
 	done
 done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./sgemm_matprod_fermi $n $verif"
-	./sgemm_matprod_fermi $n $verif >> $out
-	done
-done
-
 
 # DOUBLE
 ninputs="$(seq 64 64 7168)"
@@ -40,13 +31,5 @@ do
 	do
 	echo "./dgemm_matprod $n $verif"
 	./dgemm_matprod $n $verif >> $out
-	done
-done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./dgemm_matprod_fermi $n $verif"
-	./dgemm_matprod_fermi $n $verif >> $out
 	done
 done

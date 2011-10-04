@@ -65,7 +65,7 @@ main( int argc, char **argv )
 
     double gflops = 1.0e-9 * ((2.0 * m * n * k)/(t1-t0));
     printf("# size   time      GFlop/s\n");
-    printf("SGEMM_pt %6d %9.3f %9.3f\n", (int)m, tdelta, gflops);
+    printf("SGEMM_pt %6d %10.10f %9.6f\n", (int)m, tdelta, gflops);
     fflush(stdout);
 
     free(A); free(B); free(C);

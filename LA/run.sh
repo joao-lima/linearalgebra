@@ -6,7 +6,7 @@
 #ninputs="1024"
 #ninputs="2048"
 #verif="1"
-niter="1"
+niter="30"
 version=$(date +%s)
 out="$HOME/res/gemm-$version.txt"
 

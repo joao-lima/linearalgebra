@@ -65,12 +65,13 @@ main( int argc, char **argv )
     double_type *A      = (double_type *)malloc(LDAxK*sizeof(double_type));
     double_type *B      = (double_type *)malloc(LDBxN*sizeof(double_type));
     double_type *C      = (double_type *)malloc(LDCxN*sizeof(double_type));
-    double_type *Cinit  = (double_type *)malloc(LDCxN*sizeof(double_type));
-    double_type *Cfinal = (double_type *)malloc(LDCxN*sizeof(double_type));
+    double_type *Cinit;
+    if( verif )
+	    Cinit  = (double_type *)malloc(LDCxN*sizeof(double_type));
 
     /* Check if unable to allocate memory */
-    if ((!A)||(!B)||(!Cinit)||(!Cfinal)){
-        printf("Out of Memory \n ");
+    if ( (!A) || (!B) || (!C)  ){
+        fprintf( stdout, "Out of Memory \n ");
         return -2;
     }
 
@@ -80,47 +81,30 @@ main( int argc, char **argv )
 //    fprintf(stdout, "# PLASMA cores=%d N=%d\n", cores, N);fflush(stdout);
 
     eps = lamch('e');
-#if 0
-    printf("\n");
-    printf("------ TESTS FOR PLASMA SGEMM ROUTINE -------  \n");
-    printf("            Size of the Matrix %d by %d\n", M, N);
-    printf("\n");
-    printf(" The matrix A is randomly generated for each test.\n");
-    printf("============\n");
-    printf(" The relative machine precision (eps) is to be %e \n",eps);
-    printf(" Computational tests pass if scaled residuals are less than 10.\n");
-#endif
-    /*----------------------------------------------------------
-     *  TESTING SGEMM
-     */
 
     /* Initialize A, B, C */
     larnv(IONE, ISEED, LDAxK, A);
     larnv(IONE, ISEED, LDBxN, B);
     larnv(IONE, ISEED, LDCxN, C);
 
-    for ( i = 0; i < M; i++)
-	for (  j = 0; j < N; j++)
-	    Cinit[LDC*j+i] = C[LDC*j+i];
-    for ( i = 0; i < M; i++)
-	for (  j = 0; j < N; j++)
-	    Cfinal[LDC*j+i] = C[LDC*j+i];
+    if( verif )
+    	lacpy( LAPACK_COL_MAJOR, ' ', N, N, C, N, Cinit, N );
 
       t0 = get_elapsedtime();
     /* PLASMA SGEMM */
-    PLASMA_gemm(transa, transb, M, N, K, alpha, A, LDA, B, LDB, beta, Cfinal, LDC);
+    PLASMA_gemm(transa, transb, M, N, K, alpha, A, LDA, B, LDB, beta, C, LDC);
       t1 = get_elapsedtime();
     double tdelta = t1 - t0;
 
     double gflops = 1.0e-9 * ((2.0 * M * M * M)/(t1-t0));
     printf("# size   #threads    time      GFlop/s\n");
-    printf("SGEMM %6d %5d %9.3f %9.3f\n", (int)N, (int)cores, tdelta, gflops);
+    printf("SGEMM %6d %5d %10.10f %9.6f\n", (int)N, (int)cores, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {
 	    /* Check the solution */
 	    info_solution = check_solution(transa, transb, M, N, K, 
-			   alpha, A, LDA, B, LDB, beta, Cinit, Cfinal, LDC);
+			   alpha, A, LDA, B, LDB, beta, Cinit, C, LDC);
 
 	    if (info_solution == 0) {
 		printf("# TESTING SGEMM .............. PASSED !\n");
@@ -128,9 +112,9 @@ main( int argc, char **argv )
 	    else {
 		printf("# TESTING SGEMM ... FAILED !\n");
 	    }
+    free(Cinit); 
     }
     free(A); free(B); free(C);
-    free(Cinit); free(Cfinal);
 
     PLASMA_Finalize();
 
