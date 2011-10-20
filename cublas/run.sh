@@ -11,7 +11,7 @@ version=$(date +%s)
 out="$HOME/res/cublas-gemm-$version.txt"
 
 # FLOAT
-ninputs="$(seq 64 64 10240)"
+ninputs="$(seq 256 256 10240)"
 
 for n in $ninputs
 do
@@ -23,7 +23,7 @@ do
 done
 
 # DOUBLE
-ninputs="$(seq 64 64 7168)"
+ninputs="$(seq 256 256 10240)"
 
 for n in $ninputs
 do

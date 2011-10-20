@@ -3,17 +3,18 @@
 CC          = gcc
 FC          = gfortran
 LOADER      = $(FC)
+SCRATCH = $(HOME)
 
 LDFLAGS = -lm \
-	-L$(HOME)/install/atlas3.9.47/lib -llapack -lcblas -latlas -lf77blas \
-	-L$(HOME)/install/lapacke-3.3.0/lib -llapacke  -llapack
+	-L$(SCRATCH)/install/atlas3.9.47/lib -llapack -lcblas -latlas -lf77blas \
+	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke  -llapack
 
 LDFLAGS_PT = -lm -pthread \
-	-L$(HOME)/install/atlas3.9.47/lib -llapack -lptcblas -latlas -lptf77blas \
-	-L$(HOME)/install/lapacke-3.3.0/lib -llapacke  -llapack
+	-L$(SCRATCH)/install/atlas3.9.47/lib -llapack -lptcblas -latlas -lptf77blas \
+	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke  -llapack
 
-CFLAGS = -Wall -O2 -DADD_ -I$(HOME)/install/atlas3.9.47/include \
-	-I$(HOME)/install/lapacke-3.3.0/include 
+CFLAGS = -Wall -O2 -DADD_ -I$(SCRATCH)/install/atlas3.9.47/include \
+	-I$(SCRATCH)/install/lapacke-3.3.0/include 
 
 PROGS = sgemm_matprod  dgemm_matprod \
 	sgemm_pt_matprod  dgemm_pt_matprod \

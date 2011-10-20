@@ -3,18 +3,19 @@ CUDA := /usr/local/install/cuda4.0/cuda
 
 FC          = gfortran
 LOADER      = $(FC)
+SCRATCH	:= $(HOME)
 
 CXXFLAGS = -O2 -Wall \
 	-I$(CUDA)/include \
-	-I$(HOME)/install/atlas3.9.47/include \
-	-I$(HOME)/install/lapacke-3.3.0/include 
+	-I$(SCRATCH)/install/atlas3.9.47/include \
+	-I$(SCRATCH)/install/lapacke-3.3.0/include 
 
 CFLAGS := $(CXXFLAGS)
 
 LDFLAGS = -lm -lpthread \
 	-L$(CUDA)/lib64 -lcublas -lcuda \
-	-L$(HOME)/install/lapacke-3.3.0/lib -llapacke \
-	-L$(HOME)/install/atlas3.9.47/lib \
+	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke \
+	-L$(SCRATCH)/install/atlas3.9.47/lib \
 	-llapack -lcblas -latlas -lf77blas -lgfortran 
 
 PROGS = \
