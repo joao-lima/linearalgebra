@@ -267,6 +267,7 @@ int main(int argc, char **argv)
 //	struct timeval start;
 //	struct timeval end;
 	double t0, t1, tdelta;
+	unsigned ncpus, ngpus;
 
 	parse_args(argc, argv);
 
@@ -276,6 +277,8 @@ int main(int argc, char **argv)
 	init_problem_data();
 	partition_mult_data();
 
+	ncpus= starpu_cpu_worker_get_count();
+	ngpus= starpu_cuda_worker_get_count();
 
       t0 = get_elapsedtime();
 
@@ -310,8 +313,10 @@ int main(int argc, char **argv)
 
     	double gflops = 1.0e-9 * ((2.0 * xdim * ydim * zdim * niter)/(t1-t0));
 	//FPRINTF(stderr, "GFlop/s: %.2f\n", flops/timing/1000.0);
-	fprintf(stdout, "# size time	GFlop/s\n");
-	fprintf(stdout, "%s %6d %10.10f %9.6f\n", TYPEOUT, xdim, tdelta, gflops);
+	fprintf(stdout, "# CPUs GPUs size time GFlop/s\n");
+	fprintf(stdout, "%s %d %d %6d %10.10f %9.6f\n", TYPEOUT,
+			ncpus, ngpus,
+		       	xdim, tdelta, gflops);
 
 	fflush(stdout);
 

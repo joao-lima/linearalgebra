@@ -14,6 +14,7 @@ typedef float double_type;
 #define laswp		LAPACKE_slaswp
 #define cblas_axpy	cblas_saxpy
 #define clapack_potrf	clapack_spotrf
+#define clapack_getrf	clapack_sgetrf
 
 #elif defined(CONFIG_USE_DOUBLE)
 
@@ -28,6 +29,7 @@ typedef double double_type;
 #define laswp		LAPACKE_dlaswp
 #define cblas_axpy	cblas_daxpy
 #define clapack_potrf	clapack_dpotrf
+#define clapack_getrf	clapack_dgetrf
 
 #endif
 

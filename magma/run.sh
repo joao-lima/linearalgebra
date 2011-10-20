@@ -7,12 +7,49 @@
 #ninputs="2048"
 #verif="1"
 niter="30"
+#niter="1"
 version=$(date +%s)
-out="$HOME/res/magma-gemm-$version.txt"
+ninputs="$(seq 256 256 10240)"
+SCRATCH=$HOME
 
 # FLOAT
-ninputs="$(seq 64 64 10240)"
+out="$SCRATCH/res/magma-potrf-$version.txt"
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./spotrf_matcholesky $n $verif"
+#	./spotrf_matcholesky $n $verif >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./dpotrf_matcholesky $n $verif"
+#	./dpotrf_matcholesky $n $verif >> $out
+	done
+done
 
+out="$SCRATCH/res/magma-getrf-$version.txt"
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./sgetrf_matlu $n $verif"
+#	./sgetrf_matlu $n $verif >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./dgetrf_matlu $n $verif"
+#	./dgetrf_matlu $n $verif >> $out
+	done
+done
+
+exit 0
 for n in $ninputs
 do
 	for i in `seq 1 $niter`

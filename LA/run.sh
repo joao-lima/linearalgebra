@@ -8,42 +8,76 @@
 #verif="1"
 niter="30"
 version=$(date +%s)
-out="$HOME/res/gemm-$version.txt"
+SCRATCH=$HOME
+ninputs="$(seq 256 256 10240)"
 
-ninputs="$(seq 64 64 10240)"
+out="$SCRATCH/res/atlas-potrf-$version.txt"
 
 for n in $ninputs
 do
 	for i in `seq 1 $niter`
 	do
-	echo "./sgemm_matprod $n"
-	./sgemm_matprod $n >> $out
+	echo "./spotrf_matcholesky $n"
+	./spotrf_matcholesky $n >> $out
 	done
 done
 for n in $ninputs
 do
 	for i in `seq 1 $niter`
 	do
-	echo "./sgemm_pt_matprod $n"
-	./sgemm_pt_matprod $n >> $out
-	done
-done
-
-
-# DOUBLE
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./dgemm_matprod $n"
-	./dgemm_matprod $n >> $out
+	echo "./dpotrf_matcholesky $n"
+	./dpotrf_matcholesky $n >> $out
 	done
 done
 for n in $ninputs
 do
 	for i in `seq 1 $niter`
 	do
-	echo "./dgemm_pt_matprod $n"
-	./dgemm_pt_matprod $n >> $out
+	echo "./spotrf_pt_matcholesky $n"
+	./spotrf_pt_matcholesky $n >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./dpotrf_pt_matcholesky $n"
+	./dpotrf_pt_matcholesky $n >> $out
+	done
+done
+
+# matlu
+out="$SCRATCH/res/atlas-getrf-$version.txt"
+
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./sgetrf_matlu $n"
+	./sgetrf_matlu $n >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./dgetrf_matlu $n"
+	./dgetrf_matlu $n >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./sgetrf_pt_matlu $n"
+	./sgetrf_pt_matlu $n >> $out
+	done
+done
+for n in $ninputs
+do
+	for i in `seq 1 $niter`
+	do
+	echo "./dgetrf_pt_matlu $n"
+	./dgetrf_pt_matlu $n >> $out
 	done
 done

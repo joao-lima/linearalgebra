@@ -13,7 +13,7 @@
 #include "magmablas.h"
 //#include "magma_lapack.h"
 
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 int check_factorization(int, double_type*, double_type*, int, char);
@@ -130,9 +130,9 @@ main( int argc, char **argv )
     info_factorization = check_factorization( N, A1, A2, LDA, uplo);
 
     if ((info_factorization != 0)|(info != 0))
-       fprintf( stdout, "-- Error in SPOTRF example !\n");
+       fprintf( stdout, "-- Error in DPOTRF example !\n");
     //else
-    //   fprintf( stdout, "-- Run of SPOTRF example successful ! \n");
+    //   fprintf( stdout, "-- Run of DPOTRF example successful ! \n");
     }
 
     }
@@ -140,7 +140,7 @@ main( int argc, char **argv )
     gflops = sumgf/niter;
 
     printf("# method     size   time      GFlop/s\n");
-    printf("SPOTRF %6d %10.10f %9.6f\n", (int)N, sumt/niter, gflops);
+    printf("DPOTRF %6d %10.10f %9.6f\n", (int)N, sumt/niter, gflops);
     fflush(stdout);
 
     free(A1); free(A2);

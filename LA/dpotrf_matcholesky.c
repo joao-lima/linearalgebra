@@ -72,7 +72,7 @@ main( int argc, char **argv )
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
         
     printf("# size   time      GFlop/s\n");
-    printf("DPOTRF %6d %9.3f %9.3f\n", (int)n, tdelta, gflops);
+    printf("DPOTRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
     fflush(stdout);
 
     free(A);

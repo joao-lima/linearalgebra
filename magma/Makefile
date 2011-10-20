@@ -38,6 +38,8 @@ LDFLAGS_FERMI = -lm -lpthread \
 PROGS = sgemm_matprod dgemm_matprod \
 	spotrf_matcholesky \
 	sgetrf_matlu \
+	dgetrf_matlu \
+	dpotrf_matcholesky \
 	sgemm_matprod_fermi dgemm_matprod_fermi
 
 all: $(PROGS)
@@ -62,6 +64,12 @@ dgemm_matprod: dgemm_matprod.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 spotrf_matcholesky: spotrf_matcholesky.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dpotrf_matcholesky: dpotrf_matcholesky.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgetrf_matlu: dgetrf_matlu.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 sgetrf_matlu: sgetrf_matlu.o

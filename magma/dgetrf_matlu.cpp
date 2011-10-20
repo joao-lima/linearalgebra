@@ -11,7 +11,7 @@
 #include "magma.h"
 #include "magmablas.h"
 
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 int check_solution(int, int , double_type *, int, double_type *, double_type *, int);
@@ -156,7 +156,7 @@ main( int argc, char **argv )
     }
 
     printf("# method     size   time      GFlop/s\n");
-    printf("SGETRF %6d %10.10f %9.6f\n", (int)N, gtime/niter, ggflops/niter);
+    printf("DGETRF %6d %10.10f %9.6f\n", (int)N, gtime/niter, ggflops/niter);
     fflush(stdout);
     free(A1); free(IPIV);
     if( verif )

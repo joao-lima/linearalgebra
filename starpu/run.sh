@@ -8,7 +8,7 @@
 #verif="1"
 ncpus="$(seq 2 2 8)"
 ngpus="1"
-niter="1"
+niter="30"
 version=$(date +%s)
 out="$HOME/res/starpu-gemm-$version.txt"
 SCRATCH=$HOME
@@ -19,7 +19,7 @@ export STARPU_WORKERS_CUDAID="0"
 # 256 ate 1024
 # 1024 dpeois 
 
-ninputs="$(seq 768 768 10752)"
+ninputs="$(seq 3072 768 10752)"
 
 for n in $ninputs
 do
@@ -58,3 +58,11 @@ do
 	done
 	done
 done
+
+exit 0
+n=3072
+nblocks=4
+STARPU_NCPUS=4 STARPU_NCUDA=1 STARPU_NOPENCL=0 \
+	./sgemm_matprod  -x $n -y $n -z $n -iter 1 -nblocks $nblocks 
+exit 0
+

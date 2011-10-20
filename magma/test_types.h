@@ -18,6 +18,7 @@ typedef float double_type;
 #define magmablas_gemm	magmablas_sgemm
 #define magma_potrf	magma_spotrf
 #define magma_getrf	magma_sgetrf
+#define magma_getrf_nopiv	magma_sgetrf_nopiv
 
 #define laswp		LAPACKE_slaswp
 
@@ -37,6 +38,7 @@ typedef double double_type;
 #define magmablas_gemm	magmablas_dgemm
 #define magma_potrf	magma_dpotrf
 #define magma_getrf	magma_dgetrf
+#define magma_getrf_nopiv	magma_dgetrf_nopiv
 
 #define laswp		LAPACKE_dlaswp
 

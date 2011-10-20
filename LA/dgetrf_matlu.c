@@ -9,25 +9,12 @@
 #include <clapack.h>
 #include <lapacke.h>
 
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 
 int IONE=1;
 int ISEED[4] = {0,0,0,1};   /* initial seed for slarnv() */
-
-static void
-generate_matrix(double_type* A, int m)
-{
-	int i, j;
-  // 
-  for (i = 0; i< m; ++i)
-  {
-    for (j = 0; j< m; ++j)
-      A[i*m+j] = 1.0 / (1.0+i+j);
-    A[i*m+i] = m*1.0; 
-  }
-}
 
 double get_elapsedtime(void)
 {
@@ -42,6 +29,7 @@ main( int argc, char **argv )
 {
     int n;
     double t0, t1;
+    int *ipiv;
 
 
 	if( argc > 1 ){
@@ -51,17 +39,18 @@ main( int argc, char **argv )
 
 
     double_type *A      = (double_type *)malloc(n*n*sizeof(double_type));
+    ipiv = (int*) calloc( n, sizeof(int));
 
     /* Check if unable to allocate memory */
-    if ( !A ){
+    if ( !A || !ipiv ){
         printf("Out of Memory \n ");
         return -2;
     }
 
-    generate_matrix( A, n );
+    larnv(IONE, ISEED, n*n, A);
 
       t0 = get_elapsedtime();
-	clapack_potrf( CblasRowMajor, CblasLower, n, A, n );
+	clapack_getrf( CblasRowMajor, n, n, A, n, ipiv );
       t1 = get_elapsedtime();
     double tdelta = t1 - t0;
 
@@ -72,10 +61,11 @@ main( int argc, char **argv )
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
         
     printf("# size   time      GFlop/s\n");
-    printf("SPOTRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
+    printf("DGETRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
     fflush(stdout);
 
     free(A);
+    free(ipiv);
 
     return 0;
 }
