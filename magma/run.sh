@@ -19,7 +19,7 @@ do
 	for i in `seq 1 $niter`
 	do
 	echo "./spotrf_matcholesky $n $verif"
-#	./spotrf_matcholesky $n $verif >> $out
+	./spotrf_matcholesky $n $verif >> $out
 	done
 done
 for n in $ninputs
@@ -27,7 +27,7 @@ do
 	for i in `seq 1 $niter`
 	do
 	echo "./dpotrf_matcholesky $n $verif"
-#	./dpotrf_matcholesky $n $verif >> $out
+	./dpotrf_matcholesky $n $verif >> $out
 	done
 done
 
@@ -37,7 +37,7 @@ do
 	for i in `seq 1 $niter`
 	do
 	echo "./sgetrf_matlu $n $verif"
-#	./sgetrf_matlu $n $verif >> $out
+	./sgetrf_matlu $n $verif >> $out
 	done
 done
 for n in $ninputs
@@ -45,7 +45,7 @@ do
 	for i in `seq 1 $niter`
 	do
 	echo "./dgetrf_matlu $n $verif"
-#	./dgetrf_matlu $n $verif >> $out
+	./dgetrf_matlu $n $verif >> $out
 	done
 done
 

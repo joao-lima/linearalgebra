@@ -121,6 +121,14 @@ void SSYR (const char *uplo, const int n, const float alpha,
 	cblas_ssyr(CblasColMajor, uplo_, n, alpha, x, incx, A, lda); 
 }
 
+void DSYR (const char *uplo, const int n, const double alpha,
+                  const double *x, const int incx, double *A, const int lda)
+{
+	enum CBLAS_UPLO uplo_ = (toupper(uplo[0]) == 'U')?CblasUpper:CblasLower;
+
+	cblas_dsyr(CblasColMajor, uplo_, n, alpha, x, incx, A, lda); 
+}
+
 void SSYRK (const char *uplo, const char *trans, const int n,
                    const int k, const float alpha, const float *A,
                    const int lda, const float beta, float *C,

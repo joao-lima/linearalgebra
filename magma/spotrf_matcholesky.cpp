@@ -72,11 +72,13 @@ main( int argc, char **argv )
     double gflops;
     double gflops_max = 0.0;
 
+#if 0
     /* formula used by plasma in time_dpotrf.c */
     double fp_per_mul = 1;
     double fp_per_add = 1;
     double fmuls = (N * (1.0 / 6.0 * N + 0.5 ) * N);
     double fadds = (N * (1.0 / 6.0 * N ) * N);
+#endif
         
 
     double_type *A1   = (double_type *)malloc(LDA*N*sizeof(double_type));
@@ -118,7 +120,9 @@ main( int argc, char **argv )
 	      fprintf(stdout,"magma_spotrf ERROR: %d\n", info);
 	      return info;
       }
-      gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / (t1-t0);
+//      gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / (t1-t0);
+#define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
+      gflops = 1e-9 * FLOPS(N) / (t1-t0);
       if (gflops > gflops_max) gflops_max = gflops;
       
       sumt += t1-t0;

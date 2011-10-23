@@ -23,20 +23,48 @@ LDFLAGS = -lm -lpthread \
 	-llapack -lcblas -latlas -lf77blas -lgfortran -lstarpu
 
 PROGS = \
-	sgemm_matprod dgemm_matprod
+	sgemm_matprod dgemm_matprod \
+	spotrf_matcholesky dpotrf_matcholesky \
+	sgetrf_matlu dgetrf_matlu
 
-OBJS := blas.o 
+OBJS := blas/blas.o 
 
 all: $(PROGS)
 
 .c.o:
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-sgemm_matprod: $(OBJS) sgemm_matprod.o
+sgemm_matprod: $(OBJS) gemm/sgemm_matprod.o
 	$(LOADER) $^ -o $@ $(LDFLAGS) 
 
-dgemm_matprod: $(OBJS) dgemm_matprod.o
+dgemm_matprod: $(OBJS) gemm/dgemm_matprod.o
+	$(LOADER) $^ -o $@ $(LDFLAGS) 
+
+spotrf_matcholesky: $(OBJS) \
+		cholesky/cholesky_models.o \
+		cholesky/cholesky_skernels.o \
+		cholesky/spotrf_matcholesky.o
+	$(LOADER) $^ -o $@ $(LDFLAGS) 
+
+dpotrf_matcholesky: $(OBJS) \
+		cholesky/cholesky_models.o \
+		cholesky/cholesky_dkernels.o \
+		cholesky/dpotrf_matcholesky.o
+	$(LOADER) $^ -o $@ $(LDFLAGS) 
+
+sgetrf_matlu: $(OBJS) \
+		lu/lu_example_float.o \
+		lu/slu.o \
+		lu/slu_pivot.o \
+		lu/slu_kernels.o
+	$(LOADER) $^ -o $@ $(LDFLAGS) 
+
+dgetrf_matlu: $(OBJS) \
+		lu/lu_example_double.o \
+		lu/dlu.o \
+		lu/dlu_pivot.o \
+		lu/dlu_kernels.o
 	$(LOADER) $^ -o $@ $(LDFLAGS) 
 
 clean:
-	rm -f $(PROGS) *.o
+	rm -f $(PROGS) *.o lu/*.o  blas/*.o cholesky/*.o gemm/*.o

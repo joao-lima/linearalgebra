@@ -49,6 +49,8 @@ void DGEMM(char *transa, char *transb, int M, int N, int K,
 			double beta, double *C, int ldc);
 void SSYR (const char *uplo, const int n, const float alpha,
                   const float *x, const int incx, float *A, const int lda);
+void DSYR (const char *uplo, const int n, const double alpha,
+                  const double *x, const int incx, double *A, const int lda);
 void SSYRK (const char *uplo, const char *trans, const int n,
                    const int k, const float alpha, const float *A,
                    const int lda, const float beta, float *C,

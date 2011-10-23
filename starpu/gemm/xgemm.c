@@ -23,7 +23,7 @@
 #include <sys/time.h>
 #include <starpu.h>
 
-#include "blas.h"
+#include "blas/blas.h"
 #include "lapacke.h"
 
 #ifdef STARPU_USE_CUDA

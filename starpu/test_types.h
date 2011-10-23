@@ -1,12 +1,8 @@
 
+#ifndef __TEST_TYPES__
+#define __TEST_TYPES__
 
 #define max(a,b)	( ((a)>(b)) ? (a) : (b)  )
-
-#define FMULS_POTRF(n) ((n) * (((1. / 6.) * (n) + 0.5) * (n) + (1. / 3.)))
-#define FADDS_POTRF(n) ((n) * (((1. / 6.) * (n)      ) * (n) - (1. / 6.)))
-
-#define FMULS_GETRF(n) (0.5 * (n) * ((n) * ((n) - (1./3.) * (n) - 1. ) + (n)) + (2. / 3.) * (n)) 
-#define FADDS_GETRF(n) (0.5 * (n) * ((n) * ((n) - (1./3.) * (n) ) - (n)) + (1. / 6.) * (n)) 
 
 #if defined(CONFIG_USE_FLOAT)
 
@@ -21,6 +17,16 @@ typedef float double_type;
 #define cblas_axpy	cblas_saxpy
 #define clapack_potrf	clapack_spotrf
 #define clapack_getrf	clapack_sgetrf
+
+#define cublasGemm	cublasSgemm
+#define cublasTrsm	cublasStrsm
+#define cublasScal	cublasSscal
+#define cublasSyr	cublasSsyr
+
+#define GEMM		SGEMM
+#define	TRSM		STRSM
+#define SCAL		SSCAL
+#define SYR		SSYR
 
 #elif defined(CONFIG_USE_DOUBLE)
 
@@ -37,5 +43,16 @@ typedef double double_type;
 #define clapack_potrf	clapack_dpotrf
 #define clapack_getrf	clapack_dgetrf
 
+#define cublasGemm	cublasDgemm
+#define cublasTrsm	cublasDtrsm
+#define cublasScal	cublasDscal
+#define cublasSyr	cublasDsyr
+
+#define GEMM		DGEMM
+#define	TRSM		DTRSM
+#define SCAL		DSCAL
+#define SYR		DSYR
+
 #endif
 
+#endif

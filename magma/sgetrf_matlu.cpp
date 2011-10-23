@@ -141,11 +141,15 @@ main( int argc, char **argv )
     else
        printf("-- Run of SGETRS example successful ! \n");
 #endif
+#if 0
       double fp_per_mul = 1;
       double fp_per_add = 1;
       double fmuls = (N * (1.0 / 3.0 * N )      * N);
       double fadds = (N * (1.0 / 3.0 * N - 0.5) * N);
       double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / (t1-t0);
+#endif
+#define FLOPS(n) (      FMULS_GETRF(n) +      FADDS_GETRF(n) )
+      double gflops = 1e-9 * FLOPS(N) / (t1-t0);
       gtime += t1-t0;
       ggflops += gflops;
 

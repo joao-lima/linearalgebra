@@ -65,11 +65,15 @@ main( int argc, char **argv )
       t1 = get_elapsedtime();
     double tdelta = t1 - t0;
 
+#if 0
     double fp_per_mul = 1;
     double fp_per_add = 1;
     double fmuls = (n * (1.0 / 6.0 * n + 0.5 ) * n);
     double fadds = (n * (1.0 / 6.0 * n ) * n);
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
+#endif
+#define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
+    double gflops = 1e-9 * FLOPS(n) / tdelta;
         
     printf("# size   time      GFlop/s\n");
     printf("DPOTRF_pt %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
