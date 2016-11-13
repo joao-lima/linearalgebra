@@ -10,9 +10,10 @@
 #include "lapacke.h"
 
 #include "magma.h"
+#include "magmablas.h"
 //#include "magma_lapack.h"
 
-#define CONFIG_USE_FLOAT 1
+#define CONFIG_USE_DOUBLE 1
 #include "test_types.h"
 
 int check_factorization(int, double_type*, double_type*, int, char);
@@ -28,36 +29,22 @@ double get_elapsedtime(void)
   return (double)tv.tv_sec + 1e-6*(double)tv.tv_usec;
 }
 
-static void generate_matrix(double_type* A, size_t m)
-{
-  // 
-  for (size_t i = 0; i< m; ++i)
-  {
-    for (size_t j = 0; j< m; ++j)
-      A[i*m+j] = 1.0 / (1.0+i+j);
-    A[i*m+i] = m*1.0; 
-  }
-}
-
 int
 main( int argc, char **argv )
 {
 
     int N     = 1024 ;
-    int LDA   = N ;
     int info= 0;
     int info_factorization;
-    int i,j;
     int NminusOne = N-1;
     int verif = 0;
     double t0, t1;
     int niter= 1, iter;
-
-    char uplo = MagmaLower;
+    int lwork;
+    double_type tmp[1];
 
     if( argc > 1 ) {
 	N = atoi( argv[1] );
-	LDA = N;
 	NminusOne = N-1;
     }
 
@@ -80,77 +67,67 @@ main( int argc, char **argv )
 #endif
         
 
-    double_type *A1   = (double_type *)malloc(LDA*N*sizeof(double_type));
-    double_type *A2   = (double_type *)malloc(LDA*N*sizeof(double_type));
-//    double_type *WORK = (double_type *)malloc(2*LDA*sizeof(double_type));
-//    double_type *D                = (double_type *)malloc(LDA*sizeof(double_type));
+    double_type *A   = (double_type *)malloc(N*N*sizeof(double_type));
+    double_type *tau   = (double_type *)malloc(N*sizeof(double_type));
+    lwork= -1; /* calculate lwork into tmp */
+    magma_dgeqrf( N, N, A, N, tau, tmp, lwork, &info );
+    lwork = tmp[0];
+    double_type *work   = (double_type *)malloc(lwork*sizeof(double_type));
+    double_type *A2= NULL;
+    if( verif )
+	A2 = (double_type *)malloc(N*N*sizeof(double_type));
 
     /* Check if unable to allocate memory */
-    if ((!A1)||(!A2)){
+    if (!A || !tau || !work ){
         printf("Out of Memory \n ");
         exit(0);
     }
 
-//    fprintf(stdout, "# MAGMA N=%d\n", N);fflush(stdout);
-
+    cudaSetDevice( 0 );
+    cudaFree(0);
     for( iter= 0; iter < niter; iter++ ){
+	/* Initialize A1 and A2 for Symmetric Positive Matrix */
+	larnv( IONE, ISEED, N, A );
 
-    /* Initialize A1 and A2 for Symmetric Positive Matrix */
-    //larnv(IONE, ISEED, LDA, D);
-    //lagsy(&N, &NminusOne, D, A1, &LDA, ISEED, WORK, &info);
+	t0 = get_elapsedtime();
+	magma_dgeqrf( N, N, A, N, tau, work, lwork, &info );
+	t1 = get_elapsedtime();
 
-	generate_matrix( A1, N );
-    for ( i = 0; i < N; i++)
-        for (  j = 0; j < N; j++)
-            A2[LDA*j+i] = A1[LDA*j+i];
+	if( info < 0 ){
+	    fprintf(stdout,"magma_dgeqrf ERROR: %d\n", info);
+	    return info;
+	}
+	//      gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / (t1-t0);
+#define FLOPS(m,n) (      FMULS_GEQRF(m,n) +      FADDS_GEQRF(m,n) )
+	gflops = 1e-9 * FLOPS(N,N) / (t1-t0);
+	if (gflops > gflops_max) gflops_max = gflops;
 
-#if 0
-    for ( i = 0; i < N; i++){
-        A1[LDA*i+i] = A1[LDA*i+i]+ (double_type)N ;
-        A2[LDA*i+i] = A1[LDA*i+i];
+	sumt += t1-t0;
+	sumgf += gflops;
+	sumgf2 += gflops*gflops;
+
+	if( verif ) {
+	    /* Check the factorization */
+//	    info_factorization = check_factorization( N, A, A2, N, uplo);
+
+	    if ((info_factorization != 0)|(info != 0))
+	    fprintf( stdout, "-- Error in DGEQRF example !\n");
+	}
+
     }
-#endif
-
-	cudaFree(0);
-      t0 = get_elapsedtime();
-      magma_potrf( uplo, N, A2, N, &info );
-      t1 = get_elapsedtime();
-
-      if( info < 0 ){
-	      fprintf(stdout,"magma_spotrf ERROR: %d\n", info);
-	      return info;
-      }
-//      gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / (t1-t0);
-#define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
-      gflops = 1e-9 * FLOPS(N) / (t1-t0);
-      if (gflops > gflops_max) gflops_max = gflops;
-      
-      sumt += t1-t0;
-      sumgf += gflops;
-      sumgf2 += gflops*gflops;
 
     gflops = sumgf/niter;
 
     printf("# method     size   time      GFlop/s\n");
-    printf("SPOTRF %6d %10.10f %9.6f\n", (int)N, sumt/niter, gflops);
+    printf("DGEQRF %6d %10.10f %9.6f\n", (int)N, sumt/niter, gflops);
     fflush(stdout);
 
-    if( verif ) {
-    /* Check the factorization */
-    info_factorization = check_factorization( N, A1, A2, LDA, uplo);
+    cudaDeviceReset();
+    free(A);
+    if( verif )
+	free( A2 );
 
-    if ((info_factorization != 0)|(info != 0))
-       fprintf( stdout, "-- Error in SPOTRF example !\n");
-    //else
-    //   fprintf( stdout, "-- Run of SPOTRF example successful ! \n");
-    }
-
-    }
-
-    free(A1); free(A2);
-    //free(WORK); free(D);
-
-    exit(0);
+    return 0;
 }
 
 
@@ -160,6 +137,7 @@ main( int argc, char **argv )
 
 int check_factorization(int N, double_type *A1, double_type *A2, int LDA, char uplo)
 {
+#if 0
     double_type Anorm, Rnorm;
     double_type alpha;
     int info_factorization;
@@ -219,4 +197,6 @@ int check_factorization(int N, double_type *A1, double_type *A2, int LDA, char u
     free(Residual); free(L1); free(L2); free(work);
 
     return info_factorization;
+#endif
+    return 0;
 }

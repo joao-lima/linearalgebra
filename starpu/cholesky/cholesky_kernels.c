@@ -18,76 +18,79 @@
 #include <starpu_config.h>
 
 #include "cholesky.h"
-#include "blas/blas.h"
+
+#include "cblas.h"
+#include "clapack.h"
+
 #ifdef STARPU_USE_CUDA
 #include <starpu_cuda.h>
+#ifdef STARPU_HAVE_MAGMA
+#include "magma.h"
+//#include "magma_lapack.h"
+#endif
 #endif
 
 /*
  *   U22 
  */
 
-static inline void chol_common_cpu_codelet_update_u22(void *descr[], int s, __attribute__((unused)) void *_args)
+static inline void chol_common_cpu_codelet_update_dgemm(
+	void *descr[], int s, __attribute__((unused)) void *_args)
 {
 	/* printf("22\n"); */
-	double_type *left 	= (double_type *)STARPU_MATRIX_GET_PTR(descr[0]);
-	double_type *right 	= (double_type *)STARPU_MATRIX_GET_PTR(descr[1]);
-	double_type *center 	= (double_type *)STARPU_MATRIX_GET_PTR(descr[2]);
+	double *a		= (double *)STARPU_MATRIX_GET_PTR(descr[0]);
+	double *b		= (double *)STARPU_MATRIX_GET_PTR(descr[1]);
+	double *c	 	= (double *)STARPU_MATRIX_GET_PTR(descr[2]);
 
-	unsigned dx = STARPU_MATRIX_GET_NY(descr[2]);
-	unsigned dy = STARPU_MATRIX_GET_NX(descr[2]);
-	unsigned dz = STARPU_MATRIX_GET_NY(descr[0]);
+	unsigned m = STARPU_MATRIX_GET_NX(descr[0]);
+	unsigned n = STARPU_MATRIX_GET_NY(descr[1]);
+	unsigned k = STARPU_MATRIX_GET_NY(descr[0]);
 
-	unsigned ld21 = STARPU_MATRIX_GET_LD(descr[0]);
-	unsigned ld12 = STARPU_MATRIX_GET_LD(descr[1]);
-	unsigned ld22 = STARPU_MATRIX_GET_LD(descr[2]);
+	unsigned lda = STARPU_MATRIX_GET_LD(descr[0]);
+	unsigned ldb = STARPU_MATRIX_GET_LD(descr[1]);
+	unsigned ldc = STARPU_MATRIX_GET_LD(descr[2]);
 
-	if (s == 0)
-	{
-		int worker_size = starpu_combined_worker_get_size();
-
-		if (worker_size == 1)
-		{
-			/* Sequential CPU kernel */
-			GEMM("N", "T", dy, dx, dz, -1.0f, left, ld21, 
-				right, ld12, 1.0f, center, ld22);
-		}
-		else {
-			/* Parallel CPU kernel */
-			int rank = starpu_combined_worker_get_rank();
-
-			int block_size = (dx + worker_size - 1)/worker_size;
-			int new_dx = STARPU_MIN(dx, block_size*(rank+1)) - block_size*rank;
-			
-			double_type *new_left = &left[block_size*rank];
-			double_type *new_center = &center[block_size*rank];
-
-			GEMM("N", "T", dy, new_dx, dz, -1.0f, new_left, ld21, 
-				right, ld12, 1.0f, new_center, ld22);
-		}
-	}
-	else
-	{
-		/* CUDA kernel */
-#ifdef STARPU_USE_CUDA
-		cublasGemm('n', 't', dy, dx, dz, 
-				-1.0f, left, ld21, right, ld12, 
-				 1.0f, center, ld22);
-		cudaStreamSynchronize(starpu_cuda_get_local_stream());
+#if 0
+	fprintf(stdout, "[%s] DGEMM (s=%d) m=%d n=%d k=%d lda=%d ldb=%d ldc=%d A=%p B=%p C=%p\n",
+		__FUNCTION__,
+		s,
+		m, n, k,
+		lda, ldb, ldc,
+		a, b, c
+		);
+	fflush(stdout);
 #endif
 
+	if (s == 0) {
+		/* Sequential CPU kernel */
+		cblas_dgemm(
+			CblasColMajor, CblasNoTrans, CblasTrans,
+			m, n, k, 
+			-1.0f, a, lda,
+			b, ldb,
+			1.0f, c, ldc
+			);
+	} else {
+		/* CUDA kernel */
+#ifdef STARPU_USE_CUDA
+		cublasDgemm('n', 't', m, n, k,
+				-1.0f, a, lda, b, ldb, 
+				 1.0f, c, ldc 
+				 );
+		cudaStreamSynchronize(starpu_cuda_get_local_stream());
+#endif
 	}
 }
 
-void chol_cpu_codelet_update_u22(void *descr[], void *_args)
+void chol_cpu_codelet_update_dgemm(void *descr[], void *_args)
 {
-	chol_common_cpu_codelet_update_u22(descr, 0, _args);
+	chol_common_cpu_codelet_update_dgemm(descr, 0, _args);
 }
 
 #ifdef STARPU_USE_CUDA
-void chol_cublas_codelet_update_u22(void *descr[], void *_args)
+void chol_cublas_codelet_update_dgemm(void *descr[], void *_args)
 {
-	chol_common_cpu_codelet_update_u22(descr, 1, _args);
+	chol_common_cpu_codelet_update_dgemm(descr, 1, _args);
 }
 #endif /* STARPU_USE_CUDA */
 
@@ -95,28 +98,43 @@ void chol_cublas_codelet_update_u22(void *descr[], void *_args)
  * U21
  */
 
-static inline void chol_common_codelet_update_u21(void *descr[], int s, __attribute__((unused)) void *_args)
+static inline void chol_common_codelet_update_dtrsm(void *descr[], int s, __attribute__((unused)) void *_args)
 {
 /*	printf("21\n"); */
-	double_type *sub11;
-	double_type *sub21;
+	double *a;
+	double *c;
 
-	sub11 = (double_type *)STARPU_MATRIX_GET_PTR(descr[0]);
-	sub21 = (double_type *)STARPU_MATRIX_GET_PTR(descr[1]);
+	a = (double *)STARPU_MATRIX_GET_PTR(descr[0]);
+	c = (double *)STARPU_MATRIX_GET_PTR(descr[1]);
 
-	unsigned ld11 = STARPU_MATRIX_GET_LD(descr[0]);
-	unsigned ld21 = STARPU_MATRIX_GET_LD(descr[1]);
+	unsigned lda = STARPU_MATRIX_GET_LD(descr[0]);
+	unsigned ldc = STARPU_MATRIX_GET_LD(descr[1]);
 
-	unsigned nx21 = STARPU_MATRIX_GET_NY(descr[1]);
-	unsigned ny21 = STARPU_MATRIX_GET_NX(descr[1]);
+	unsigned n = STARPU_MATRIX_GET_NY(descr[1]);
+	unsigned k = STARPU_MATRIX_GET_NY(descr[0]);
+
+#if 0
+	fprintf(stdout, "[%s] DTRSM (s=%d) n=%d k=%d lda=%d ldc=%d A=%p C=%p\n",
+		__FUNCTION__,
+		s,
+		n, k,
+		lda, ldc,
+		(void*)a, (void*)c
+		);
+	fflush(stdout);
+#endif
 
 	switch (s) {
 		case 0:
-			TRSM("R", "L", "T", "N", nx21, ny21, 1.0f, sub11, ld11, sub21, ld21);
-			break;
+		    cblas_dtrsm(
+			    CblasColMajor, CblasRight, CblasLower,
+			    CblasTrans, CblasNonUnit,
+			    n, k, 1.0f, a, lda, c, ldc
+			    );
+		    break;
 #ifdef STARPU_USE_CUDA
 		case 1:
-			cublasTrsm('R', 'L', 'T', 'N', nx21, ny21, 1.0f, sub11, ld11, sub21, ld21);
+			cublasDtrsm('R', 'L', 'T', 'N', n, k, 1.0f, a, ldc, c, ldc);
 			cudaStreamSynchronize(starpu_cuda_get_local_stream());
 			break;
 #endif
@@ -126,15 +144,15 @@ static inline void chol_common_codelet_update_u21(void *descr[], int s, __attrib
 	}
 }
 
-void chol_cpu_codelet_update_u21(void *descr[], void *_args)
+void chol_cpu_codelet_update_dtrsm(void *descr[], void *_args)
 {
-	 chol_common_codelet_update_u21(descr, 0, _args);
+	 chol_common_codelet_update_dtrsm(descr, 0, _args);
 }
 
 #ifdef STARPU_USE_CUDA
-void chol_cublas_codelet_update_u21(void *descr[], void *_args)
+void chol_cublas_codelet_update_dtrsm(void *descr[], void *_args)
 {
-	chol_common_codelet_update_u21(descr, 1, _args);
+	chol_common_codelet_update_dtrsm(descr, 1, _args);
 }
 #endif 
 
@@ -142,72 +160,48 @@ void chol_cublas_codelet_update_u21(void *descr[], void *_args)
  *	U11
  */
 
-static inline void chol_common_codelet_update_u11(void *descr[], int s, __attribute__((unused)) void *_args) 
+static inline void chol_common_codelet_update_dpotrf(void *descr[], int s, __attribute__((unused)) void *_args) 
 {
 /*	printf("11\n"); */
-	double_type *sub11;
+	double *a;
 
-	sub11 = (double_type *)STARPU_MATRIX_GET_PTR(descr[0]); 
+	a = (double *)STARPU_MATRIX_GET_PTR(descr[0]); 
 
-	unsigned nx = STARPU_MATRIX_GET_NY(descr[0]);
-	unsigned ld = STARPU_MATRIX_GET_LD(descr[0]);
+	unsigned n = STARPU_MATRIX_GET_NX(descr[0]);
+	unsigned lda = STARPU_MATRIX_GET_LD(descr[0]);
 
-	unsigned z;
+#if 0
+	fprintf(stdout, "[%s] DPOTRF (s=%d) n=%d lda=%d A=%p\n",
+		__FUNCTION__,
+		s,
+		n, lda, (void*)a );
+	fflush(stdout);
+#endif
 
 	switch (s) {
 		case 0:
-
-			/*
-			 *	- alpha 11 <- lambda 11 = sqrt(alpha11)
-			 *	- alpha 21 <- l 21	= alpha 21 / lambda 11
-			 *	- A22 <- A22 - l21 trans(l21)
-			 */
-
-			for (z = 0; z < nx; z++)
-			{
-				double_type lambda11;
-				lambda11 = sqrt(sub11[z+z*ld]);
-				sub11[z+z*ld] = lambda11;
-
-				STARPU_ASSERT(lambda11 != 0.0f);
-		
-				SCAL(nx - z - 1, 1.0f/lambda11, &sub11[(z+1)+z*ld], 1);
-		
-				SYR("L", nx - z - 1, -1.0f, 
-							&sub11[(z+1)+z*ld], 1,
-							&sub11[(z+1)+(z+1)*ld], ld);
-			}
+			clapack_dpotrf(
+				CblasColMajor,
+				CblasLower,
+				n, a, lda
+			    );
 			break;
 #ifdef STARPU_USE_CUDA
 		case 1:
+#ifdef STARPU_HAVE_MAGMA
 			{
-			double_type *lambda11;
-			cudaHostAlloc((void **)&lambda11, sizeof(double_type), 0);
-
-			for (z = 0; z < nx; z++)
+			int ret;
+			int info;
+			ret = magma_dpotrf_gpu('L', n, a, lda, &info);
+			if (ret != MAGMA_SUCCESS)
 			{
-
-				cudaMemcpyAsync(lambda11, &sub11[z+z*ld], sizeof(double_type), cudaMemcpyDeviceToHost, starpu_cuda_get_local_stream());
-				cudaStreamSynchronize(starpu_cuda_get_local_stream());
-
-				STARPU_ASSERT(*lambda11 != 0.0f);
-				
-				*lambda11 = sqrt(*lambda11);
-
-/*				cublasSetVector(1, sizeof(double_type), lambda11, sizeof(double_type), &sub11[z+z*ld], sizeof(double_type)); */
-				cudaMemcpyAsync(&sub11[z+z*ld], lambda11, sizeof(double_type), cudaMemcpyHostToDevice, starpu_cuda_get_local_stream());
-
-				cublasScal(nx - z - 1, 1.0f/(*lambda11), &sub11[(z+1)+z*ld], 1);
-
-				cublasSyr('U', nx - z - 1, -1.0f,
-							&sub11[(z+1)+z*ld], 1,
-							&sub11[(z+1)+(z+1)*ld], ld);
+				fprintf(stderr, "Error in Magma: %d\n", ret);
+				STARPU_ABORT();
 			}
-
-			cudaStreamSynchronize(starpu_cuda_get_local_stream());
-			cudaFreeHost(lambda11);
+			cudaError_t cures = cudaThreadSynchronize();
+			STARPU_ASSERT(!cures);
 			}
-		
+#endif
 
 			break;
 #endif
@@ -218,14 +212,79 @@ static inline void chol_common_codelet_update_u11(void *descr[], int s, __attrib
 }
 
 
-void chol_cpu_codelet_update_u11(void *descr[], void *_args)
+void chol_cpu_codelet_update_dpotrf(void *descr[], void *_args)
 {
-	chol_common_codelet_update_u11(descr, 0, _args);
+	chol_common_codelet_update_dpotrf(descr, 0, _args);
 }
 
 #ifdef STARPU_USE_CUDA
-void chol_cublas_codelet_update_u11(void *descr[], void *_args)
+void chol_cublas_codelet_update_dpotrf(void *descr[], void *_args)
 {
-	chol_common_codelet_update_u11(descr, 1, _args);
+	chol_common_codelet_update_dpotrf(descr, 1, _args);
 }
 #endif/* STARPU_USE_CUDA */
+
+static inline void chol_common_codelet_update_dsyrk(void *descr[], int s, __attribute__((unused)) void *_args)
+{
+/*	printf("21\n"); */
+	double *A;
+	double *C;
+
+	A = (double *)STARPU_MATRIX_GET_PTR(descr[0]);
+	C = (double *)STARPU_MATRIX_GET_PTR(descr[1]);
+
+	unsigned lda = STARPU_MATRIX_GET_LD(descr[0]);
+	unsigned ldc = STARPU_MATRIX_GET_LD(descr[1]);
+
+	unsigned n = STARPU_MATRIX_GET_NX(descr[1]);
+	unsigned k = STARPU_MATRIX_GET_NX(descr[0]);
+
+#if 0
+	fprintf(stdout, "[%s] DSYRK (s=%d) n=%d k=%d lda=%d ldc=%d A=%p C=%p\n",
+		__FUNCTION__,
+		s,
+		n, k,
+		lda, ldc,
+		(void*)A, (void*)C
+		);
+	fflush(stdout);
+#endif
+
+	switch (s) {
+		case 0:
+		    cblas_dsyrk(
+			    CblasColMajor, CblasLower, CblasNoTrans,
+			    n, k,
+			    -1.0f, A, lda,
+			    1.0f, C, ldc
+			    );
+		    break;
+#ifdef STARPU_USE_CUDA
+		case 1:
+			cublasDsyrk(
+			    'L', 'N',
+			    n, k,
+			    -1.0f, A, lda,
+			    1.0f, C, ldc
+			);
+			cudaStreamSynchronize(starpu_cuda_get_local_stream());
+			break;
+#endif
+		default:
+			STARPU_ABORT();
+			break;
+	}
+}
+
+void chol_cpu_codelet_update_dsyrk(void *descr[], void *_args)
+{
+	chol_common_codelet_update_dsyrk(descr, 0, _args);
+}
+
+#ifdef STARPU_USE_CUDA
+void chol_cublas_codelet_update_dsyrk(void *descr[], void *_args)
+{
+	chol_common_codelet_update_dsyrk(descr, 1, _args);
+}
+#endif/* STARPU_USE_CUDA */
+

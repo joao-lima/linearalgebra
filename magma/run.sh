@@ -1,89 +1,106 @@
 #!/bin/bash
 
-#ninputs="512 1024"
-#ninputs="4096"
-#ninputs="8192"
-#ninputs="1024"
-#ninputs="2048"
 #verif="1"
 niter="30"
-#niter="1"
 version=$(date +%s)
-ninputs="$(seq 256 256 10240)"
 SCRATCH=$HOME
+#SCRATCH="/scratch/jvlima"
 
-# FLOAT
-out="$SCRATCH/res/magma-potrf-$version.txt"
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
+function run_gemm {
+	local prog="$1"
+	local out="$2"
+	local ninputs="$3"
+	for n in $ninputs
 	do
-	echo "./spotrf_matcholesky $n $verif"
-	./spotrf_matcholesky $n $verif >> $out
+		for i in `seq 1 $niter`
+		do
+		    echo "MAGMA_NUM_GPUS=$MAGMA_NUM_GPUS $prog $n $out"
+		    $prog $n >> $out
+		done
 	done
-done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./dpotrf_matcholesky $n $verif"
-	./dpotrf_matcholesky $n $verif >> $out
-	done
-done
+}
 
-out="$SCRATCH/res/magma-getrf-$version.txt"
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
+function run_dgemm {
+    local out="$SCRATCH/res/magma-dgemm-${MAGMA_NUM_GPUS}gpu-$version.txt"
+    local exe=" ./dgemm_matprod "
+    local ninputs="256 512 $(seq 1024 1024 10240)"
+    run_gemm "$exe" "$out" "$ninputs"
+}
+
+function run_dgemm_nocopy {
+    local out="$SCRATCH/res/magma-dgemm-nocopy-${MAGMA_NUM_GPUS}gpu-$version.txt"
+    local exe=" ./dgemm_matprod_nocopy "
+    local ninputs="256 512 $(seq 1024 1024 10240)"
+    run_gemm "$exe" "$out" "$ninputs"
+}
+
+function run_potrf {
+	local prog="$1"
+	local out="$2"
+	local ninputs="$3"
+	for n in $ninputs
 	do
-	echo "./sgetrf_matlu $n $verif"
-	./sgetrf_matlu $n $verif >> $out
+		for i in `seq 1 $niter`
+		do
+		    echo "MAGMA_NUM_GPUS=$MAGMA_NUM_GPUS $prog $n $out"
+		    $prog $n >> $out
+		done
 	done
-done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
+}
+
+function run_dpotrf {
+    local out="$SCRATCH/res/magma-dpotrf-${MAGMA_NUM_GPUS}gpu-$version.txt"
+    local exe=" ./dpotrf_matcholesky "
+    local ninputs="18432 $(seq 28672 1024 30720)"
+    run_potrf "$exe" "$out" "$ninputs"
+}
+
+function run_getrf {
+	local prog="$1"
+	local out="$2"
+	local ninputs="$3"
+	for n in $ninputs
 	do
-	echo "./dgetrf_matlu $n $verif"
-	./dgetrf_matlu $n $verif >> $out
+		for i in `seq 1 $niter`
+		do
+		    echo "MAGMA_NUM_GPUS=$MAGMA_NUM_GPUS $prog $n $out"
+#		    $prog $n >> $out
+		done
 	done
-done
+}
+
+function run_dgetrf {
+    local prog=" ./dgetrf_matlu "
+    local out="$SCRATCH/res/magma-dgetrf-$version.txt"
+    local ninputs="$(seq 1024 1024 18432)"
+    run_getrf "$prog" "$out" "$ninputs"
+}
+
+function run_geqrf {
+	local prog="$1"
+	local out="$2"
+	local ninputs="$3"
+	for n in $ninputs
+	do
+		for i in `seq 1 $niter`
+		do
+		    echo "MAGMA_NUM_GPUS=$MAGMA_NUM_GPUS $prog $n $out"
+		    $prog $n >> $out
+		done
+	done
+}
+
+function run_dgeqrf {
+    local prog=" ./dgeqrf_matqr"
+    local out="$SCRATCH/res/magma-dgeqrf-$version.txt"
+    local ninputs="256 512 $(seq 1024 1024 30720)"
+    run_geqrf "$prog" "$out" "$ninputs"
+}
+
+unset MAGMA_NUM_GPUS
+
+#run_dgemm
+run_dgeqrf
 
 exit 0
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./sgemm_matprod $n $verif"
-	./sgemm_matprod $n $verif >> $out
-	done
-done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./sgemm_matprod_fermi $n $verif"
-	./sgemm_matprod_fermi $n $verif >> $out
-	done
-done
 
-
-# DOUBLE
-ninputs="$(seq 64 64 7168)"
-
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./dgemm_matprod $n $verif"
-	./dgemm_matprod $n $verif >> $out
-	done
-done
-for n in $ninputs
-do
-	for i in `seq 1 $niter`
-	do
-	echo "./dgemm_matprod_fermi $n $verif"
-	./dgemm_matprod_fermi $n $verif >> $out
-	done
-done

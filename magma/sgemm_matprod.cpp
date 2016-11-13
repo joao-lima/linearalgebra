@@ -8,8 +8,8 @@
 #include "cblas.h"
 #include "lapacke.h"
 
-#include "cuda.h"
-#include "cublas.h"
+#include <cuda_runtime_api.h>
+#include <cublas.h>
 
 #include "magma.h"
 #include "magmablas.h"

@@ -1,69 +1,42 @@
 
-CUDA := /usr/local/install/cuda4.0/cuda
-SCRATCH := $(HOME)
+CUDA := $(CUDA_HOME)
+SCRATCH := /scratch/jvlima
 
-FC          = gfortran
+FC          = g++
 LOADER      = $(FC)
 
-CXXFLAGS = -O2 -Wall \
-	 -I$(SCRATCH)/install/magma_1.0.0/include \
-	-I$(CUDA)/include \
-	-I$(SCRATCH)/install/atlas3.9.47/include \
-	-I$(SCRATCH)/install/lapacke-3.3.0/include 
-
-CXXFLAGS_FERMI = -O2 -Wall \
-	 -I$(SCRATCH)/install/magma_1.0.0-fermi/include \
-	-I$(CUDA)/include \
-	-I$(SCRATCH)/install/atlas3.9.47/include \
-	-I$(SCRATCH)/install/lapacke-3.3.0/include 
+CXXFLAGS = -O3 -Wall \
+	   $(CUDA_CFLAGS) \
+	   $(CBLAS_CFLAGS) \
+	   $(LAPACKE_CFLAGS) \
+	   $(MAGMA_CFLAGS)
 
 CFLAGS := $(CXXFLAGS)
 
-LDFLAGS = -lm -lpthread \
-	-L$(CUDA)/lib64 -lcublas -lcuda \
-	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke \
-	-L$(SCRATCH)/install/atlas3.9.47/lib \
-	-llapack -lcblas -latlas -lf77blas -lgfortran \
-	-L$(SCRATCH)/install/magma_1.0.0/lib -lmagma -lmagmablas \
-	-llapack -lcblas -latlas -lf77blas -lgfortran 
+LDFLAGS = -lm -lpthread -lgfortran \
+	  $(MAGMA_LDFLAGS) \
+	  $(CUDA_LDFLAGS) \
+	  -lcublas \
+	  $(LAPACKE_LDFLAGS) \
+	  $(LAPACK_LDFLAGS) \
+	  $(CBLAS_LDFLAGS) 
 
-LDFLAGS_FERMI = -lm -lpthread \
-	-L$(CUDA)/lib64 -lcublas -lcuda \
-	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke \
-	-L$(SCRATCH)/install/atlas3.9.47/lib \
-	-llapack -lcblas -latlas -lf77blas -lgfortran \
-	-L$(SCRATCH)/install/magma_1.0.0-fermi/lib -lmagma -lmagmablas \
-	-llapack -lcblas -latlas -lf77blas -lgfortran 
-
-PROGS = sgemm_matprod dgemm_matprod \
-	spotrf_matcholesky \
-	sgetrf_matlu \
+PROGS = \
+	dgemm_matprod \
+	dgemm_matprod_nocopy \
 	dgetrf_matlu \
-	dpotrf_matcholesky \
-	sgemm_matprod_fermi dgemm_matprod_fermi
+	dgeqrf_matqr \
+	dpotrf_matcholesky
 
 all: $(PROGS)
-
-sgemm_matprod_fermi.o: sgemm_matprod_fermi.cpp
-	$(CXX) $(CXXFLAGS_FERMI) -c $< -o $@
-sgemm_matprod_fermi: sgemm_matprod_fermi.o
-	$(LOADER) $< -o $@ $(LDFLAGS_FERMI) 
-
-dgemm_matprod_fermi.o: dgemm_matprod_fermi.cpp
-	$(CXX) $(CXXFLAGS_FERMI) -c $< -o $@
-dgemm_matprod_fermi: dgemm_matprod_fermi.o
-	$(LOADER) $< -o $@ $(LDFLAGS_FERMI) 
 
 .c.o:
 	$(CXX) $(CFLAGS) -c $< -o $@
 
-sgemm_matprod: sgemm_matprod.o
-	$(LOADER) $< -o $@ $(LDFLAGS) 
-
 dgemm_matprod: dgemm_matprod.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
-spotrf_matcholesky: spotrf_matcholesky.o
+dgemm_matprod_nocopy: dgemm_matprod_nocopy.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 dpotrf_matcholesky: dpotrf_matcholesky.o
@@ -72,7 +45,7 @@ dpotrf_matcholesky: dpotrf_matcholesky.o
 dgetrf_matlu: dgetrf_matlu.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
-sgetrf_matlu: sgetrf_matlu.o
+dgeqrf_matqr: dgeqrf_matqr.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
 clean:

@@ -131,18 +131,19 @@ main( int argc, char **argv )
 	cudaMalloc( &d_A, msize*sizeof(double_type) );
 	cudaMalloc( &d_B, msize*sizeof(double_type) );
 	cudaMalloc( &d_C, msize*sizeof(double_type) );
-    cublasSetMatrix( N, N, sizeof(double_type), A, N, d_A, N );
-    cublasSetMatrix( N, N, sizeof(double_type), B, N, d_B, N );
-    cublasSetMatrix( N, N, sizeof(double_type), C, N, d_C, N );
 
       cudaThreadSynchronize();
       t0 = get_elapsedtime();
+    cublasSetMatrix( N, N, sizeof(double_type), A, N, d_A, N );
+    cublasSetMatrix( N, N, sizeof(double_type), B, N, d_B, N );
+    cublasSetMatrix( N, N, sizeof(double_type), C, N, d_C, N );
       res= cublasGemm( handle,
 		transa, transb , N, N, N, &alpha,
 		d_A, N,
 		d_B, N,
 		&beta,
 		d_C, N);
+	cublasGetMatrix( N, N, sizeof(double_type), d_C, N, C, N );
       cudaThreadSynchronize();
       t1 = get_elapsedtime();
     if( res != CUBLAS_STATUS_SUCCESS ) {
@@ -150,8 +151,6 @@ main( int argc, char **argv )
 	    fflush(stdout);
 	    return -1;
     }
-
-	cublasGetMatrix( N, N, sizeof(double_type), d_C, N, C, N );
 
     double tdelta = t1 - t0;
     double gflops = 1.0e-9 * ((2.0 * N * N * N)/(t1-t0));

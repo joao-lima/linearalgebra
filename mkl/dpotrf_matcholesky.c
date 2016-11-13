@@ -5,19 +5,21 @@
 #include <math.h>
 #include <sys/time.h>
 
-#include <cblas.h>
-#include <clapack.h>
-#include <lapacke.h>
+//#include <cblas.h>
+//#include <clapack.h>
+#include "mkl_cblas.h"
+#include "mkl_lapack.h"
+//#include <lapacke.h>
 
-#define CONFIG_USE_DOUBLE 1
-#include "test_types.h"
+//#define CONFIG_USE_DOUBLE 1
+//#include "test_types.h"
 
 
 int IONE=1;
 int ISEED[4] = {0,0,0,1};   /* initial seed for slarnv() */
 
 static void
-generate_matrix( double_type* A, size_t N )
+generate_matrix( double* A, size_t N )
 {
     size_t i, j;
   for (i = 0; i< N; i++) {
@@ -49,7 +51,7 @@ main( int argc, char **argv )
 		n= 512;
 
 
-    double_type *A      = (double_type *)malloc(n*n*sizeof(double_type));
+    double *A      = (double *)malloc(n*n*sizeof(double));
 
     /* Check if unable to allocate memory */
     if ( !A ){
@@ -57,11 +59,14 @@ main( int argc, char **argv )
         return -2;
     }
 
-    larnv(IONE, ISEED, n*n, A);
+    int size = n*n;
+    dlarnv(&IONE, ISEED, &size, A);
     generate_matrix( A, n );
+    int info;
+    char uplo = 'l';
 
       t0 = get_elapsedtime();
-	clapack_potrf( CblasRowMajor, CblasLower, n, A, n );
+	dpotrf( &uplo, &n, A, &n, &info );
       t1 = get_elapsedtime();
     double tdelta = t1 - t0;
 
@@ -72,6 +77,9 @@ main( int argc, char **argv )
     double fadds = (n * (1.0 / 6.0 * n ) * n);
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
 #endif
+
+#define FMULS_POTRF(n) ((n) * (((1. / 6.) * (n) + 0.5) * (n) + (1. / 3.)))
+#define FADDS_POTRF(n) ((n) * (((1. / 6.) * (n)      ) * (n) - (1. / 6.)))
 #define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
     double gflops = 1e-9 * FLOPS(n) / tdelta;
         

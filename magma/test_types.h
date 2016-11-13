@@ -8,6 +8,11 @@
 #define FMULS_GETRF(n) (0.5 * (n) * ((n) * ((n) - (1./3.) * (n) - 1. ) + (n)) + (2. / 3.) * (n)) 
 #define FADDS_GETRF(n) (0.5 * (n) * ((n) * ((n) - (1./3.) * (n) ) - (n)) + (1. / 6.) * (n)) 
 
+#define FMULS_GEQRF(__m, __n) (((__m) > (__n)) ? ((__n) * ((__n) * (  0.5-(1./3.) * (__n) + (__m)) +    (__m) + 23. / 6.)) \
+                               :                 ((__m) * ((__m) * ( -0.5-(1./3.) * (__m) + (__n)) + 2.*(__n) + 23. / 6.)) )
+#define FADDS_GEQRF(__m, __n) (((__m) > (__n)) ? ((__n) * ((__n) * (  0.5-(1./3.) * (__n) + (__m))            +  5. / 6.)) \
+                               :                 ((__m) * ((__m) * ( -0.5-(1./3.) * (__m) + (__n)) +    (__n) +  5. / 6.)) )
+
 #if defined(CONFIG_USE_FLOAT)
 
 typedef float double_type;
@@ -28,6 +33,8 @@ typedef float double_type;
 
 #define laswp		LAPACKE_slaswp
 
+#define clapack_geqrf	clapack_sgeqrf
+
 #elif defined(CONFIG_USE_DOUBLE)
 
 typedef double double_type;
@@ -47,6 +54,8 @@ typedef double double_type;
 #define magma_getrf_nopiv	magma_dgetrf_nopiv
 
 #define laswp		LAPACKE_dlaswp
+
+#define clapack_geqrf	clapack_dgeqrf
 
 #endif
 

@@ -1,36 +1,55 @@
 
-CUDA := /usr/local/install/cuda4.0/cuda
+CUDA := $(CUDA_HOME)
 
 FC          = gfortran
 LOADER      = $(FC)
-SCRATCH	:= $(HOME)
+SCRATCH	:= /scratch/jvlima
+CC := gcc
 
-CXXFLAGS = -O2 -Wall \
-	-I$(CUDA)/include \
-	-I$(SCRATCH)/install/atlas3.9.47/include \
-	-I$(SCRATCH)/install/lapacke-3.3.0/include 
+CXXFLAGS = -O3 -Wall \
+	   $(CUDA_CFLAGS) \
+	   $(CBLAS_CFLAGS) \
+	   $(LAPACKE_CFLAGS)
 
 CFLAGS := $(CXXFLAGS)
 
 LDFLAGS = -lm -lpthread \
-	-L$(CUDA)/lib64 -lcublas -lcuda \
-	-L$(SCRATCH)/install/lapacke-3.3.0/lib -llapacke \
-	-L$(SCRATCH)/install/atlas3.9.47/lib \
-	-llapack -lcblas -latlas -lf77blas -lgfortran 
+	  $(CUDA_LDFLAGS) \
+	  -lcublas \
+	  $(LAPACKE_LDFLAGS) \
+	  $(LAPACK_LDFLAGS) \
+	  $(CBLAS_LDFLAGS) 
 
+OBJS := pool/kaapi_cuda_pool.o
 PROGS = \
-	sgemm_matprod dgemm_matprod
+	dgemm_matprod \
+	dgemm_matprod_nocopy \
+	dgemm_matprod_register \
+	dgemm_matprod_anod2h \
+	dgemm_matprod_async 
 
 all: $(PROGS)
 
 .c.o:
-	$(CXX) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-sgemm_matprod: sgemm_matprod.o
-	$(LOADER) $< -o $@ $(LDFLAGS) 
+.cpp.o:
+	$(CC) $(CFLAGS) -c $< -o $@
 
 dgemm_matprod: dgemm_matprod.o
 	$(LOADER) $< -o $@ $(LDFLAGS) 
 
+dgemm_matprod_nocopy: dgemm_matprod_nocopy.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgemm_matprod_async: dgemm_matprod_async.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgemm_matprod_register: dgemm_matprod_register.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
+dgemm_matprod_anod2h: dgemm_matprod_anod2h.o
+	$(LOADER) $< -o $@ $(LDFLAGS) 
+
 clean:
-	rm -f $(PROGS) *.o
+	rm -f $(PROGS) *.o */*.o

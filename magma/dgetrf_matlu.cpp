@@ -5,8 +5,10 @@
 #include <math.h>
 #include <sys/time.h>
 
+extern "C" {
 #include "cblas.h"
 #include "lapacke.h"
+}
 
 #include "magma.h"
 #include "magmablas.h"
@@ -122,6 +124,7 @@ main( int argc, char **argv )
     if( verif )
 	    lacpy( LAPACK_COL_MAJOR, ' ', N, N, A1, N, A2, N);
 
+	cudaFree(0);
       t0 = get_elapsedtime();
     /* LU factorization of the matrix A */
       magma_getrf( N, N, A1, N, IPIV, &info );

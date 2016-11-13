@@ -41,7 +41,7 @@ static unsigned zdim = 64;
 static unsigned check = 0;
 
 static TYPE *A, *B, *C;
-static starpu_data_handle A_handle, B_handle, C_handle;
+static starpu_data_handle_t A_handle, B_handle, C_handle;
 
 #define FPRINTF(ofile, fmt, args ...) do { if (!getenv("STARPU_SSILENT")) {fprintf(ofile, fmt, ##args); }} while(0)
 
@@ -195,20 +195,22 @@ static void cpu_mult(void *descr[], __attribute__((unused))  void *arg)
 	mult_kernel_common(descr, STARPU_CPU);
 }
 
-static struct starpu_perfmodel_t starpu_gemm_model = {
+static struct starpu_perfmodel starpu_gemm_model = {
 	.type = STARPU_HISTORY_BASED,
 	.symbol = STARPU_GEMM_STR(gemm)
 };
 
-static starpu_codelet cl = {
+static struct starpu_codelet cl =
+{
 	.where = STARPU_CPU|STARPU_CUDA,
 	.type = STARPU_SEQ, /* changed to STARPU_SPMD if -spmd is passed */
 	.max_parallelism = INT_MAX,
-	.cpu_func = cpu_mult,
+	.cpu_funcs = {cpu_mult,NULL},
 #ifdef STARPU_USE_CUDA
-	.cuda_func = cublas_mult,
+	.cuda_funcs = {cublas_mult, NULL},
 #endif
 	.nbuffers = 3,
+	.modes = {STARPU_R, STARPU_R, STARPU_RW},
 	.model = &starpu_gemm_model
 };
 
@@ -268,10 +270,13 @@ int main(int argc, char **argv)
 //	struct timeval end;
 	double t0, t1, tdelta;
 	unsigned ncpus, ngpus;
+	int ret;
 
 	parse_args(argc, argv);
 
-	starpu_init(NULL);
+	ret = starpu_init(NULL);
+	if (ret == -ENODEV)
+		return 77;
 	starpu_helper_cublas_init();
 
 	init_problem_data();
@@ -289,18 +294,20 @@ int main(int argc, char **argv)
 		for (y = 0; y < nslicesy; y++)
 		{
 			struct starpu_task *task = starpu_task_create();
-	
+
 			task->cl = &cl;
-	
-			task->buffers[0].handle = starpu_data_get_sub_data(A_handle, 1, y);
-			task->buffers[0].mode = STARPU_R;
-			task->buffers[1].handle = starpu_data_get_sub_data(B_handle, 1, x);
-			task->buffers[1].mode = STARPU_R;
-			task->buffers[2].handle = starpu_data_get_sub_data(C_handle, 2, x, y);
-			task->buffers[2].mode = STARPU_RW;
-	
+
+			task->handles[0] = starpu_data_get_sub_data(A_handle, 1, y);
+			task->handles[1] = starpu_data_get_sub_data(B_handle, 1, x);
+			task->handles[2] = starpu_data_get_sub_data(C_handle, 2, x, y);
+
 			int ret = starpu_task_submit(task);
-			STARPU_ASSERT(!ret);
+			if (ret == -ENODEV)
+			{
+			     ret = 77;
+			     goto enodev;
+			}
+			STARPU_CHECK_RETURN_VALUE(ret, "starpu_task_submit");
 		}
 
 		starpu_task_wait_for_all();
@@ -313,19 +320,29 @@ int main(int argc, char **argv)
 
     	double gflops = 1.0e-9 * ((2.0 * xdim * ydim * zdim * niter)/(t1-t0));
 	//FPRINTF(stderr, "GFlop/s: %.2f\n", flops/timing/1000.0);
-	fprintf(stdout, "# CPUs GPUs size time GFlop/s\n");
-	fprintf(stdout, "%s %d %d %6d %10.10f %9.6f\n", TYPEOUT,
+	fprintf(stdout, "# CPUs GPUs size nb time GFlop/s\n");
+	fprintf(stdout, "%s %d %d %d %d %10.10f %9.6f\n", TYPEOUT,
 			ncpus, ngpus,
-		       	xdim, tdelta, gflops);
+		       	xdim,  nslicesy, tdelta, gflops);
 
 	fflush(stdout);
 
+enodev:
 	starpu_data_unpartition(C_handle, 0);
+	starpu_data_unpartition(B_handle, 0);
+	starpu_data_unpartition(A_handle, 0);
+
+	starpu_data_unregister(A_handle);
+	starpu_data_unregister(B_handle);
 	starpu_data_unregister(C_handle);
-	
+
 	if (check)
 		check_output();
-	
+
+	starpu_free(A);
+	starpu_free(B);
+	starpu_free(C);
+
 	starpu_helper_cublas_shutdown();
 	starpu_shutdown();
 

@@ -9,10 +9,11 @@ extern "C" {
 #include "cblas.h"
 }
 #include "lapacke.h"
-#include <cuda_runtime_api.h>
+
+#include "cuda_runtime.h"
 #include "cublas_v2.h"
 
-#define CONFIG_USE_DOUBLE 1
+#define CONFIG_USE_FLOAT 1
 #include "test_types.h"
 
 static int do_check
@@ -77,6 +78,8 @@ double get_elapsedtime(void)
   return (double)tv.tv_sec + 1e-6*(double)tv.tv_usec;
 }
 
+cublasHandle_t handle;
+
 int
 main( int argc, char **argv )
 {
@@ -85,20 +88,34 @@ main( int argc, char **argv )
     int N     = 512;
     int verif= 0;
     double t0, t1;
-    cublasHandle_t handle;
+    int nblocks= 1;
     cublasStatus_t res;
-    cudaError_t errno;
     cublasOperation_t transa, transb;
+    cudaStream_t stream;
 
-	if( argc > 1 ){
-		N = atoi(argv[1]);
-	}
+    if( argc > 1 )
+	N = atoi(argv[1]);
+
     if( argc > 2 )
-      verif = atoi( argv[2] );
+	nblocks = atoi( argv[2] );
 
+    if( argc > 3 )
+	verif = atoi( argv[3] );
+
+    cudaSetDevice(0);
+    res= cublasCreate( &handle );
+    if( res != CUBLAS_STATUS_SUCCESS ) {
+	    fprintf(stdout, "CUBLAS create error: %d\n", res );
+	    fflush(stdout);
+	    return -1;
+    }
+    cudaStreamCreate( &stream );
     int info_solution;
     //int i, j;
     size_t msize = N*N;
+//	cudaMallocHost( (void**)&A, msize*sizeof(double_type) );
+//	cudaMallocHost( (void**)&B, msize*sizeof(double_type) );
+//	cudaMallocHost( (void**)&C, msize*sizeof(double_type) );
     double_type *A      = (double_type *)malloc(msize*sizeof(double_type));
     double_type *B      = (double_type *)malloc(msize*sizeof(double_type));
     double_type *C      = (double_type *)malloc(msize*sizeof(double_type));
@@ -120,61 +137,71 @@ main( int argc, char **argv )
     if( verif )
 	    lacpy( LAPACK_COL_MAJOR, ' ', N, N, C, N, Cinit, N );
 
-    cudaSetDevice(0);
-    cudaFree(0);
-    res= cublasCreate( &handle );
-    if( res != CUBLAS_STATUS_SUCCESS ) {
-	    fprintf(stdout, "CUBLAS error: %d\n", res );
-	    fflush(stdout);
-	    return -1;
-    }
-      cudaThreadSynchronize();
-
     double_type *d_A, *d_B, *d_C;
+	cudaMalloc( &d_A, msize*sizeof(double_type) );
+	cudaMalloc( &d_B, msize*sizeof(double_type) );
+	cudaMalloc( &d_C, msize*sizeof(double_type) );
+    fprintf( stdout, "main A=%p B=%p C=%p\n", A, B, C );
+    fprintf( stdout, "main d_A=%p d_B=%p d_C=%p\n", d_A, d_B, d_C );
+    fflush(stdout);
 
+	cudaHostRegister( A, msize*sizeof(double_type), cudaHostRegisterPortable );
+	cudaHostRegister( B, msize*sizeof(double_type), cudaHostRegisterPortable );
+	cudaHostRegister( C, msize*sizeof(double_type), cudaHostRegisterPortable );
+
+//	cublasSetPointerMode( handle, CUBLAS_POINTER_MODE_HOST);
+	
+//	cublasSetStream( handle, 0 );
+    int i, j, k, nb;
+    nb = N / nblocks;
+//	cublasSetMatrix( N, N, sizeof(double_type), A, N, d_A, N );
+//	cublasSetMatrix( N, N, sizeof(double_type), B, N, d_B, N );
+//	cublasSetMatrix( N, N, sizeof(double_type), C, N, d_C, N );
+     cudaThreadSynchronize();
       t0 = get_elapsedtime();
+    cublasSetStream( handle, stream );
+    for( i= 0; i < N; i+= nb ) {
+	for( j= 0; j < N; j+= nb ) {
+	    for( k= 0; k < N; k+= nb ) {
+		/* all column major for CUBLAS */
+		cublasSetMatrixAsync( nb, nb, sizeof(double_type), 
+			A+k*N+i, N,
+			d_A+k*N+i, N, stream );
+		cublasSetMatrixAsync( nb, nb, sizeof(double_type),
+			B+j*N+k, N,
+			d_B+j*N+k, N, stream );
+		cublasSetMatrixAsync( nb, nb, sizeof(double_type),
+			C+j*N+i, N,
+			d_C+j*N+i, N, stream );
 
-    errno= cudaMalloc( (void**)&d_A, msize*sizeof(double_type) );
-    if( errno != cudaSuccess ) {
-	    fprintf(stdout, "cudaMalloc error: %d\n", errno );
-	    fflush(stdout);
-	    return -1;
+		res= cublasGemm( handle,
+		    transa, transb , nb, nb, nb, &alpha,
+		    d_A+k*N+i, N,
+		    d_B+j*N+k, N,
+		    &beta,
+		    d_C+j*N+i, N);
+//		fprintf(stdout,"i=%d j=%d k=%d\n", i, j, k);
+//		fflush(stdout);
+#if 0
+		if( res != CUBLAS_STATUS_SUCCESS ) {
+		    fprintf(stdout, "CUBLAS error: %d\n", res );
+		    fflush(stdout);
+		 //   return -1;
+		}
+#endif
+		cublasGetMatrixAsync( nb, nb, sizeof(double_type),
+		       	d_C+j*N+i, N, C+j*N+i, N, stream );
+	    }
+	}
     }
-    errno= cudaMalloc( (void**)&d_B, msize*sizeof(double_type) );
-    if( errno != cudaSuccess ) {
-	    fprintf(stdout, "cudaMalloc error: %d\n", errno );
-	    fflush(stdout);
-	    return -1;
-    }
-    errno= cudaMalloc( (void**)&d_C, msize*sizeof(double_type) );
-    if( errno != cudaSuccess ) {
-	    fprintf(stdout, "cudaMalloc error: %d\n", errno );
-	    fflush(stdout);
-	    return -1;
-    }
-    cublasSetMatrix( N, N, sizeof(double_type), A, N, d_A, N );
-    cublasSetMatrix( N, N, sizeof(double_type), B, N, d_B, N );
-    cublasSetMatrix( N, N, sizeof(double_type), C, N, d_C, N );
-
-      res= cublasGemm( handle,
-		transa, transb , N, N, N, &alpha,
-		d_A, N,
-		d_B, N,
-		&beta,
-		d_C, N);
-    if( res != CUBLAS_STATUS_SUCCESS ) {
-	    fprintf(stdout, "CUBLAS error: %d\n", res );
-	    fflush(stdout);
-	    return -1;
-    }
-
-	cublasGetMatrix( N, N, sizeof(double_type), d_C, N, C, N );
+    cudaStreamSynchronize( stream );
       t1 = get_elapsedtime();
+//	cublasGetMatrix( N, N, sizeof(double_type), d_C, N, C, N );
 
     double tdelta = t1 - t0;
     double gflops = 1.0e-9 * ((2.0 * N * N * N)/(t1-t0));
-    printf("# method     size   time      GFlop/s\n");
-    printf("DGEMM %6d %10.10f %9.6f\n", (int)N, tdelta, gflops);
+    printf("# method  nblocks   size   time      GFlop/s\n");
+    printf("SGEMM %d %6d %10.10f %9.6f\n", (int)N, nblocks, tdelta, gflops);
     fflush(stdout);
 
     if( verif ) {
@@ -182,15 +209,16 @@ main( int argc, char **argv )
 	    info_solution = do_check( A, B, Cinit, C, N );
 
 	    if (info_solution == 0) {
-		printf("# TESTING DGEMM .............. PASSED !\n");
+		printf("# TESTING SGEMM .............. PASSED !\n");
 	    }
 	    else {
-		printf("# TESTING DGEMM ... FAILED !\n");
+		printf("# TESTING SGEMM ... FAILED !\n");
 	    }
     	free(Cinit); 
     }
     free(A); free(B); free(C);
 
+    cudaStreamDestroy( stream );
     cudaFree( d_A );
     cudaFree( d_B );
     cudaFree( d_C );

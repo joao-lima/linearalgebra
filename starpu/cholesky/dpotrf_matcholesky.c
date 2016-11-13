@@ -1,31 +1,71 @@
-/* StarPU --- Runtime system for heterogeneous multicore architectures.
- *
- * Copyright (C) 2009, 2010, 2011  Université de Bordeaux 1
- * Copyright (C) 2010  Mehdi Juhoor <mjuhoor@gmail.com>
- * Copyright (C) 2010, 2011  Centre National de la Recherche Scientifique
- *
- * StarPU is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation; either version 2.1 of the License, or (at
- * your option) any later version.
- *
- * StarPU is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- *
- * See the GNU Lesser General Public License in COPYING.LGPL for more details.
- */
-
 
 #define CONFIG_USE_DOUBLE
 
-#include "test_types.h"
 #include "cholesky.h"
 
-/*
- *	Some useful functions
+/*------------------------------------------------------------------------
+ *  Check the factorization of the matrix A2
+ *  from PLASMA (examples/example_dpotrf.c)
  */
+int check_factorization(int N, double *A1, double *A2, int LDA, int uplo)
+{
+    double Anorm, Rnorm;
+    double alpha;
+    int info_factorization;
+    int i,j;
+    double eps;
 
+    eps = LAPACKE_dlamch_work('e');
+
+    double *Residual = (double *)malloc(N*N*sizeof(double));
+    double *L1       = (double *)malloc(N*N*sizeof(double));
+    double *L2       = (double *)malloc(N*N*sizeof(double));
+    double *work              = (double *)malloc(N*sizeof(double));
+
+    memset((void*)L1, 0, N*N*sizeof(double));
+    memset((void*)L2, 0, N*N*sizeof(double));
+
+    alpha= 1.0;
+
+    LAPACKE_dlacpy_work(LAPACK_COL_MAJOR,' ', N, N, A1, LDA, Residual, N);
+
+    /* Dealing with L'L or U'U  */
+    if (uplo == CblasUpper){
+        LAPACKE_dlacpy_work(LAPACK_COL_MAJOR,'u', N, N, A2, LDA, L1, N);
+        LAPACKE_dlacpy_work(LAPACK_COL_MAJOR,'u', N, N, A2, LDA, L2, N);
+        cblas_dtrmm(CblasColMajor, CblasLeft, CblasUpper, CblasTrans, CblasNonUnit, N, N, (alpha), L1, N, L2, N);
+    }
+    else{
+        LAPACKE_dlacpy_work(LAPACK_COL_MAJOR,'l', N, N, A2, LDA, L1, N);
+        LAPACKE_dlacpy_work(LAPACK_COL_MAJOR,'l', N, N, A2, LDA, L2, N);
+        cblas_dtrmm(CblasColMajor, CblasRight, CblasLower, CblasTrans, CblasNonUnit, N, N, (alpha), L1, N, L2, N);
+    }
+
+    /* Compute the Residual || A -L'L|| */
+    for (i = 0; i < N; i++)
+        for (j = 0; j < N; j++)
+           Residual[j*N+i] = L2[j*N+i] - Residual[j*N+i];
+
+    Rnorm = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', N, N, Residual, N, work);
+    Anorm = LAPACKE_dlange_work(LAPACK_COL_MAJOR, 'I', N, N, A1, LDA, work);
+
+    printf("# ============\n");
+    printf("# Checking the Cholesky Factorization \n");
+    printf("# -- ||L'L-A||_oo/(||A||_oo.N.eps) = %e \n",Rnorm/(Anorm*N*eps));
+
+    if ( isnan(Rnorm/(Anorm*N*eps)) || (Rnorm/(Anorm*N*eps) > 10.0) ){
+        printf("# ERROR -- Factorization is suspicious ! \n");
+        info_factorization = 1;
+    }
+    else{
+        printf("# OK -- Factorization is CORRECT ! \n");
+        info_factorization = 0;
+    }
+
+    free(Residual); free(L1); free(L2); free(work);
+
+    return info_factorization;
+}
 double get_elapsedtime(void)
 {
   struct timeval tv;
@@ -34,318 +74,281 @@ double get_elapsedtime(void)
   return (double)tv.tv_sec + 1e-6*(double)tv.tv_usec;
 }
 
-static struct starpu_task *create_task(starpu_tag_t id)
+static struct starpu_codelet cl_dpotrf =
 {
-	struct starpu_task *task = starpu_task_create();
-		task->cl_arg = NULL;
-		task->use_tag = 1;
-		task->tag_id = id;
-
-	return task;
-}
-
-/*
- *	Create the codelets
- */
-
-static starpu_codelet cl11 =
-{
+	.modes = { STARPU_RW },
+	.type = STARPU_SEQ,
 	.where = STARPU_CPU|STARPU_CUDA,
-	.cpu_func = chol_cpu_codelet_update_u11,
+	.cpu_funcs = {chol_cpu_codelet_update_dpotrf, NULL},
 #ifdef STARPU_USE_CUDA
-	.cuda_func = chol_cublas_codelet_update_u11,
+	.cuda_funcs = {chol_cublas_codelet_update_dpotrf, NULL},
 #endif
 	.nbuffers = 1,
-	.model = &chol_model_11
+	.model = &chol_model_dpotrf
 };
 
-static struct starpu_task * create_task_11(starpu_data_handle dataA, unsigned k, unsigned reclevel)
+static struct starpu_codelet cl_dtrsm =
 {
-/*	FPRINTF(stdout, "task 11 k = %d TAG = %llx\n", k, (TAG11(k))); */
-
-	struct starpu_task *task = create_task(TAG11_AUX(k, reclevel));
-	
-	task->cl = &cl11;
-
-	/* which sub-data is manipulated ? */
-	task->buffers[0].handle = starpu_data_get_sub_data(dataA, 2, k, k);
-	task->buffers[0].mode = STARPU_RW;
-
-	/* this is an important task */
-	task->priority = STARPU_MAX_PRIO;
-
-	/* enforce dependencies ... */
-	if (k > 0) {
-		starpu_tag_declare_deps(TAG11_AUX(k, reclevel), 1, TAG22_AUX(k-1, k, k, reclevel));
-	}
-
-	return task;
-}
-
-static starpu_codelet cl21 =
-{
+	.modes = { STARPU_R, STARPU_RW },
+	.type = STARPU_SEQ,
 	.where = STARPU_CPU|STARPU_CUDA,
-	.cpu_func = chol_cpu_codelet_update_u21,
+	.cpu_funcs = {chol_cpu_codelet_update_dtrsm, NULL},
 #ifdef STARPU_USE_CUDA
-	.cuda_func = chol_cublas_codelet_update_u21,
+	.cuda_funcs = {chol_cublas_codelet_update_dtrsm, NULL},
 #endif
 	.nbuffers = 2,
-	.model = &chol_model_21
+	.model = &chol_model_dtrsm
 };
 
-static void create_task_21(starpu_data_handle dataA, unsigned k, unsigned j, unsigned reclevel)
+static struct starpu_codelet cl_dsyrk =
 {
-	struct starpu_task *task = create_task(TAG21_AUX(k, j, reclevel));
-
-	task->cl = &cl21;	
-
-	/* which sub-data is manipulated ? */
-	task->buffers[0].handle = starpu_data_get_sub_data(dataA, 2, k, k); 
-	task->buffers[0].mode = STARPU_R;
-	task->buffers[1].handle = starpu_data_get_sub_data(dataA, 2, k, j); 
-	task->buffers[1].mode = STARPU_RW;
-
-	if (j == k+1) {
-		task->priority = STARPU_MAX_PRIO;
-	}
-
-	/* enforce dependencies ... */
-	if (k > 0) {
-		starpu_tag_declare_deps(TAG21_AUX(k, j, reclevel), 2, TAG11_AUX(k, reclevel), TAG22_AUX(k-1, k, j, reclevel));
-	}
-	else {
-		starpu_tag_declare_deps(TAG21_AUX(k, j, reclevel), 1, TAG11_AUX(k, reclevel));
-	}
-
-	starpu_task_submit(task);
-}
-
-static starpu_codelet cl22 =
-{
+	.modes = { STARPU_R, STARPU_RW },
+	.type = STARPU_SEQ,
 	.where = STARPU_CPU|STARPU_CUDA,
-	.cpu_func = chol_cpu_codelet_update_u22,
+	.cpu_funcs = {chol_cpu_codelet_update_dsyrk, NULL},
 #ifdef STARPU_USE_CUDA
-	.cuda_func = chol_cublas_codelet_update_u22,
+	.cuda_funcs = {chol_cublas_codelet_update_dsyrk, NULL},
+#endif
+	.nbuffers = 2,
+	.model = &chol_model_dsyrk
+};
+
+static struct starpu_codelet cl_dgemm =
+{
+	.modes = { STARPU_R, STARPU_R, STARPU_RW },
+	.type = STARPU_SEQ,
+	.max_parallelism = INT_MAX,
+	.where = STARPU_CPU|STARPU_CUDA,
+	.cpu_funcs = {chol_cpu_codelet_update_dgemm, NULL},
+#ifdef STARPU_USE_CUDA
+	.cuda_funcs = {chol_cublas_codelet_update_dgemm, NULL},
 #endif
 	.nbuffers = 3,
-	.model = &chol_model_22
+	.model = &chol_model_dgemm
 };
 
-static void create_task_22(starpu_data_handle dataA, unsigned k, unsigned i, unsigned j, unsigned reclevel)
+static int cholesky_starpu( starpu_data_handle_t* dataA, unsigned N, unsigned nb )
 {
-/*	FPRINTF(stdout, "task 22 k,i,j = %d,%d,%d TAG = %llx\n", k,i,j, TAG22_AUX(k,i,j)); */
-
-	struct starpu_task *task = create_task(TAG22_AUX(k, i, j, reclevel));
-
-	task->cl = &cl22;
-
-	/* which sub-data is manipulated ? */
-	task->buffers[0].handle = starpu_data_get_sub_data(dataA, 2, k, i); 
-	task->buffers[0].mode = STARPU_R;
-	task->buffers[1].handle = starpu_data_get_sub_data(dataA, 2, k, j); 
-	task->buffers[1].mode = STARPU_R;
-	task->buffers[2].handle = starpu_data_get_sub_data(dataA, 2, i, j); 
-	task->buffers[2].mode = STARPU_RW;
-
-	if ( (i == k + 1) && (j == k +1) ) {
-		task->priority = STARPU_MAX_PRIO;
-	}
-
-	/* enforce dependencies ... */
-	if (k > 0) {
-		starpu_tag_declare_deps(TAG22_AUX(k, i, j, reclevel), 3, TAG22_AUX(k-1, i, j, reclevel), TAG21_AUX(k, i, reclevel), TAG21_AUX(k, j, reclevel));
-	}
-	else {
-		starpu_tag_declare_deps(TAG22_AUX(k, i, j, reclevel), 2, TAG21_AUX(k, i, reclevel), TAG21_AUX(k, j, reclevel));
-	}
-
-	starpu_task_submit(task);
-}
-
-
-
-/*
- *	code to bootstrap the factorization 
- *	and construct the DAG
- */
-
-static void cholesky_grain_rec(double_type *matA, unsigned size, unsigned ld, unsigned nblocks, unsigned nbigblocks, unsigned reclevel)
-{
-	/* create a new codelet */
-	struct starpu_task *entry_task = NULL;
+	int ret;
 
 	/* create all the DAG nodes */
-	unsigned i,j,k;
+	unsigned m, n, k;
 
-	starpu_data_handle dataA;
+	int prio = STARPU_MAX_PRIO;
 
-	/* monitor and partition the A matrix into blocks :
-	 * one block is now determined by 2 unsigned (i,j) */
-	starpu_matrix_data_register(&dataA, 0, (uintptr_t)matA, ld, size, size, sizeof(double_type));
+#define A(x,y)	    (dataA[nb*x+y])
+	for (k = 0; k < nb; k++) {
+                ret = starpu_insert_task(
+			&cl_dpotrf,
+			 STARPU_PRIORITY, prio,
+			 STARPU_RW, A(k,k),
+			 0);
+		if (ret == -ENODEV) return 77;
 
-	starpu_data_set_sequential_consistency_flag(dataA, 0);
-
-	struct starpu_data_filter f;
-		f.filter_func = starpu_vertical_block_filter_func;
-		f.nchildren = nblocks;
-		f.get_nchildren = NULL;
-		f.get_child_ops = NULL;
-
-	struct starpu_data_filter f2;
-		f2.filter_func = starpu_block_filter_func;
-		f2.nchildren = nblocks;
-		f2.get_nchildren = NULL;
-		f2.get_child_ops = NULL;
-
-	starpu_data_map_filters(dataA, 2, &f, &f2);
-
-	for (k = 0; k < nbigblocks; k++)
-	{
-		struct starpu_task *task = create_task_11(dataA, k, reclevel);
-		/* we defer the launch of the first task */
-		if (k == 0) {
-			entry_task = task;
+		for (m = k+1; m<nb; m++) {
+                        ret = starpu_insert_task(
+				&cl_dtrsm,
+				 STARPU_PRIORITY, prio,
+				 STARPU_R, A(k,k),
+				 STARPU_RW, A(k,m),
+				 0);
+			if (ret == -ENODEV) return 77;
 		}
-		else {
-			starpu_task_submit(task);
-		}
-		
-		for (j = k+1; j<nblocks; j++)
-		{
-			create_task_21(dataA, k, j, reclevel);
 
-			for (i = k+1; i<nblocks; i++)
-			{
-				if (i <= j)
-					create_task_22(dataA, k, i, j, reclevel);
+		for (m = k+1; m<nb; m++) {
+                        ret = starpu_insert_task(
+				&cl_dsyrk,
+				 STARPU_PRIORITY, prio,
+				 STARPU_R, A(k,m),
+				 STARPU_RW, A(m,m),
+				 0);
+			if (ret == -ENODEV) return 77;
+
+			for (n = k+1; n < nb; n++){
+				    ret = starpu_insert_task(
+					    &cl_dgemm,
+					     STARPU_PRIORITY, prio,
+					     STARPU_R, A(k,m),
+					     STARPU_R, A(k,n),
+					     STARPU_RW, A(n,m),
+					     0);
+				    if (ret == -ENODEV) return 77;
 			}
 		}
 	}
 
-	/* schedule the codelet */
-	int ret = starpu_task_submit(entry_task);
-	if (STARPU_UNLIKELY(ret == -ENODEV))
-	{
-		FPRINTF(stderr, "No worker may execute this task\n");
-		exit(-1);
-	}
-
-	if (nblocks == nbigblocks)
-	{
-		/* stall the application until the end of computations */
-		starpu_tag_wait(TAG11_AUX(nblocks-1, reclevel));
-		starpu_data_unpartition(dataA, 0);
-		return;
-	}
-	else {
-		STARPU_ASSERT(reclevel == 0);
-		unsigned ndeps_tags = (nblocks - nbigblocks)*(nblocks - nbigblocks);
-
-		starpu_tag_t *tag_array = malloc(ndeps_tags*sizeof(starpu_tag_t));
-		STARPU_ASSERT(tag_array);
-
-		unsigned ind = 0;
-		for (i = nbigblocks; i < nblocks; i++)
-		for (j = nbigblocks; j < nblocks; j++)
-		{
-			if (i <= j)
-				tag_array[ind++] = TAG22_AUX(nbigblocks - 1, i, j, reclevel);
-		}
-
-		starpu_tag_wait_array(ind, tag_array);
-
-		free(tag_array);
-
-		starpu_data_unpartition(dataA, 0);
-		starpu_data_unregister(dataA);
-
-		double_type *newmatA = &matA[nbigblocks*(size/nblocks)*(ld+1)];
-
-		cholesky_grain_rec(newmatA, size/nblocks*(nblocks - nbigblocks), ld, (nblocks - nbigblocks)*2, (nblocks - nbigblocks)*2, reclevel+1);
-	}
+	starpu_task_wait_for_all();
+	return 0;
 }
 
-static void initialize_system(double_type **A, unsigned dim, unsigned pinned)
-{
-	starpu_init(NULL);
-
-	starpu_helper_cublas_init();
-
-	if (pinned)
-	{
-		starpu_malloc((void **)A, dim*dim*sizeof(double_type));
-	} 
-	else {
-		*A = malloc(dim*dim*sizeof(double_type));
-	}
-}
-
-void cholesky_grain(double_type *matA, unsigned size, unsigned ld, unsigned nblocks, unsigned nbigblocks)
+int cholesky(double **a, unsigned n, unsigned blocsize, unsigned nb)
 {
 	double t0, t1, tdelta;
 	unsigned ncpus, ngpus;
+	int i, j;
+	int ret;
 
 	ncpus= starpu_cpu_worker_get_count();
 	ngpus= starpu_cuda_worker_get_count();
 
+	starpu_data_handle_t *dataA = (starpu_data_handle_t*)malloc( nb * nb * sizeof(starpu_data_handle_t));
+	for( i= 0; i < nb; i++ ){
+	    for( j= 0; j < nb; j++ ){
+		starpu_matrix_data_register(&dataA[i*nb+j], 0, (uintptr_t)a[i*nb+j],
+		       blocsize, blocsize, blocsize, sizeof(double) );
+	    }
+	}
+
       t0 = get_elapsedtime();
-	//gettimeofday(&start, NULL);
 
-	cholesky_grain_rec(matA, size, ld, nblocks, nbigblocks, 0);
+	ret = cholesky_starpu( dataA, n, nb );
 
-	//gettimeofday(&end, NULL);
       t1 = get_elapsedtime();
     tdelta = t1 - t0;
 
-	//double timing = (double)((end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec));
-	//FPRINTF(stderr, "Computation took (in ms)\n");
-	//FPRINTF(stdout, "%2.2f\n", timing/1000);
+	for( i= 0; i < nb; i++ ){
+	    for( j= 0; j < nb; j++ ){
+		starpu_data_unregister(dataA[i*nb+j]);
+	    }
+	}
+	free( dataA );
 
-	//double flop = (1.0f*size*size*size)/3.0f;
-	//FPRINTF(stderr, "Synthetic GFlops : %2.2f\n", (flop/timing/1000.0f));
 #define FMULS_POTRF(n) ((n) * (((1. / 6.) * (n) + 0.5) * (n) + (1. / 3.)))
 #define FADDS_POTRF(n) ((n) * (((1. / 6.) * (n)      ) * (n) - (1. / 6.)))
 #define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
-    double gflops = 1e-9 * FLOPS(size) / tdelta;
-	fprintf(stdout, "# CPUs GPUs size time GFlop/s\n");
-	fprintf(stdout, "%s %d %d %6d %10.10f %9.6f\n", "DPOTRF",
+    double gflops = 1e-9 * FLOPS(n) / tdelta;
+	fprintf(stdout, "# CPUs GPUs size blocsize time GFlop/s\n");
+	fprintf(stdout, "%s %d %d %d %d %10.10f %9.6f\n", "DPOTRF",
 			ncpus, ngpus,
-		       	size, tdelta, gflops);
+		       	n, blocsize, tdelta, gflops);
 
 	fflush(stdout);
-
-	starpu_helper_cublas_shutdown();
-
-	starpu_shutdown();
+	return ret;
 }
+
+static void
+generate_matrix( double** a, size_t n, size_t blocsize )
+{
+    size_t i, j;
+    size_t ibloc, jbloc, i_idx, j_idx;
+    size_t nb = n/ blocsize;
+
+    for (i = 0; i< n; i++) {
+	ibloc = i/blocsize;
+	i_idx = i%blocsize;
+	a[ ibloc*nb + ibloc][i_idx*blocsize+i_idx ] =
+	    a[ibloc*nb + ibloc][i_idx*blocsize+i_idx] + 1.*n; 
+	for (j = 0; j < i; j++) {
+	  jbloc = j/blocsize;
+	  j_idx = j%blocsize;
+	  a[ibloc*nb+jbloc][i_idx*blocsize+j_idx] =
+	      a[jbloc*nb+ibloc][j_idx*blocsize+i_idx];
+	}
+    }
+#if 0
+    for( i = 0; i < blocsize; i++ ){
+	ibloc = i/blocsize;
+	i_idx = i%blocsize;
+	for( j = 0; j < blocsize; j++ ) {
+	  jbloc = j/blocsize;
+	  j_idx = j%blocsize;
+	  printf( " %.2f ",
+		  a[ibloc*nb+jbloc][i_idx*blocsize+j_idx]
+		);
+	}
+	printf("\n");
+    }
+#endif
+}
+
 
 int main(int argc, char **argv)
 {
-	/* create a simple definite positive symetric matrix example
-	 *
-	 *	Hilbert matrix : h(i,j) = 1/(i+j+1)
-	 * */
+    int ret;
+    size_t n = 512, blocsize = 256, nb;
+    int verif = 0;
+    double **a, *Acopy;
+    int i, j;
 
-	parse_args(argc, argv);
+    if( argc > 1 )
+	n = atol(argv[1]);
+    if( argc > 2 )
+	blocsize = atol(argv[2]);
+    if (argc > 3)
+	verif = atoi(argv[3]);
 
-	double_type *mat;
+    nb = n / blocsize;
 
-	mat = malloc(size*size*sizeof(double_type));
-	initialize_system(&mat, size, pinned);
+    ret = starpu_init(NULL);
+    if (ret == -ENODEV)
+	    exit(77);
 
-	unsigned i,j;
-	for (i = 0; i < size; i++)
-	{
-		for (j = 0; j < size; j++)
-		{
-			mat[j +i*size] = (1.0f/(1.0f+i+j)) + ((i == j)?1.0f*size:0.0f);
-			/* mat[j +i*size] = ((i == j)?1.0f*size:0.0f); */
-		}
+    starpu_helper_cublas_init();
+
+    a      = (double**) malloc( nb * nb * sizeof(double*));
+    Acopy  = NULL;
+    if ((!a)){
+	printf("Out of Memory \n ");
+	abort();
+    }
+    if( verif ) {
+	Acopy = (double*) malloc( n * n * sizeof(double));
+    }
+
+    int IONE=1;
+    int ISEED[4] = {0,0,0,1};   /* initial seed for slarnv() */
+    for( i = 0; i < nb; i++ ){
+	for( j= 0; j < nb; j++ ){
+		starpu_malloc((void **)&a[j*nb+i], blocsize * blocsize * sizeof(double));
+		if( NULL == a[j*nb+i] ){
+		    fprintf(stdout, "ERROR cannot allocate memory\n");
+		abort();
+	    }
+	    LAPACKE_dlarnv( IONE, ISEED, blocsize * blocsize, a[j*nb+i] );
 	}
+    }
+    generate_matrix( a, n, blocsize );
+    if( verif ){
+	size_t ibloc, i_idx, jbloc, j_idx;
+	for( i = 0; i < blocsize; i++ ){
+	    ibloc = i/blocsize;
+	    i_idx = i%blocsize;
+	    for( j = 0; j < blocsize; j++ ) {
+	      jbloc = j/blocsize;
+	      j_idx = j%blocsize;
+	      Acopy[i*n+j] = a[ibloc*nb+jbloc][i_idx*blocsize+j_idx];
+	    }
+	}
+    }
 
+    ret = cholesky( a, n, blocsize, nb );
+    if( verif ) {
+	size_t ibloc, i_idx, jbloc, j_idx;
+	double *aa = (double*) malloc( n * n * sizeof(double) );
+	for( i = 0; i < blocsize; i++ ){
+	    ibloc = i/blocsize;
+	    i_idx = i%blocsize;
+	    for( j = 0; j < blocsize; j++ ) {
+	      jbloc = j/blocsize;
+	      j_idx = j%blocsize;
+	      aa[i*n+j] = a[ibloc*nb+jbloc][i_idx*blocsize+j_idx];
+	    }
+	}
+	check_factorization( n, Acopy, aa, n, CblasLower );
+	free( aa );
+	free( Acopy );
+    }
 
-	cholesky_grain(mat, size, size, nblocks, nbigblocks);
+    for( i = 0; i < nb; i++ ){
+	for( j= 0; j < nb; j++ ){
+	    starpu_free( a[j*nb+i] );
+	}
+    }
+    free(a);
+    starpu_helper_cublas_shutdown();
+    starpu_shutdown();
 
-
-	return 0;
+    return 0;
 }
+
+

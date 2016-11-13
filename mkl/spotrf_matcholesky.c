@@ -9,7 +9,7 @@
 #include <clapack.h>
 #include <lapacke.h>
 
-#define CONFIG_USE_DOUBLE 1
+#define CONFIG_USE_FLOAT 1
 #include "test_types.h"
 
 
@@ -17,16 +17,17 @@ int IONE=1;
 int ISEED[4] = {0,0,0,1};   /* initial seed for slarnv() */
 
 static void
-generate_matrix( double_type* A, size_t N )
+generate_matrix(double_type* A, int m)
 {
-    size_t i, j;
-  for (i = 0; i< N; i++) {
-    A[i*N+i] = A[i*N+i] + 1.*N; 
-    for (j = 0; j < i; j++)
-      A[i*N+j] = A[j*N+i];
+	int i, j;
+  // 
+  for (i = 0; i< m; ++i)
+  {
+    for (j = 0; j< m; ++j)
+      A[i*m+j] = 1.0 / (1.0+i+j);
+    A[i*m+i] = m*1.0; 
   }
 }
-
 
 double get_elapsedtime(void)
 {
@@ -57,7 +58,6 @@ main( int argc, char **argv )
         return -2;
     }
 
-    larnv(IONE, ISEED, n*n, A);
     generate_matrix( A, n );
 
       t0 = get_elapsedtime();
@@ -73,10 +73,10 @@ main( int argc, char **argv )
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
 #endif
 #define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
-    double gflops = 1e-9 * FLOPS(n) / tdelta;
+    	double gflops = 1e-9 * FLOPS(n) / tdelta;
         
     printf("# size   time      GFlop/s\n");
-    printf("DPOTRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
+    printf("SPOTRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
     fflush(stdout);
 
     free(A);

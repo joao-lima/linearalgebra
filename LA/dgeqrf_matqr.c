@@ -16,18 +16,6 @@
 int IONE=1;
 int ISEED[4] = {0,0,0,1};   /* initial seed for slarnv() */
 
-static void
-generate_matrix( double_type* A, size_t N )
-{
-    size_t i, j;
-  for (i = 0; i< N; i++) {
-    A[i*N+i] = A[i*N+i] + 1.*N; 
-    for (j = 0; j < i; j++)
-      A[i*N+j] = A[j*N+i];
-  }
-}
-
-
 double get_elapsedtime(void)
 {
   struct timeval tv;
@@ -40,7 +28,7 @@ int
 main( int argc, char **argv )
 {
     int n;
-    double t0, t1;
+    double t0, t1, *tau;
 
 
 	if( argc > 1 ){
@@ -50,18 +38,18 @@ main( int argc, char **argv )
 
 
     double_type *A      = (double_type *)malloc(n*n*sizeof(double_type));
+    tau = (double_type*) calloc( n, sizeof(double_type) );
 
     /* Check if unable to allocate memory */
-    if ( !A ){
+    if ( !A || !tau ){
         printf("Out of Memory \n ");
         return -2;
     }
 
     larnv(IONE, ISEED, n*n, A);
-    generate_matrix( A, n );
 
       t0 = get_elapsedtime();
-	clapack_potrf( CblasRowMajor, CblasLower, n, A, n );
+	clapack_dgeqrf( CblasRowMajor, n, n, A, n, tau );
       t1 = get_elapsedtime();
     double tdelta = t1 - t0;
 
@@ -72,14 +60,15 @@ main( int argc, char **argv )
     double fadds = (n * (1.0 / 6.0 * n ) * n);
     double gflops = 1e-9 * (fmuls * fp_per_mul + fadds * fp_per_add) / tdelta;
 #endif
-#define FLOPS(n) (      FMULS_POTRF(n) +      FADDS_POTRF(n) )
-    double gflops = 1e-9 * FLOPS(n) / tdelta;
+#define FLOPS(m,n) (      FMULS_GEQRF(m,n) +      FADDS_GEQRF(m,n) )
+    double gflops = 1e-9 * FLOPS(n,n) / tdelta;
         
     printf("# size   time      GFlop/s\n");
-    printf("DPOTRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
+    printf("DGEQRF %6d %10.10f %9.6f\n", (int)n, tdelta, gflops);
     fflush(stdout);
 
     free(A);
+    free(tau);
 
     return 0;
 }
